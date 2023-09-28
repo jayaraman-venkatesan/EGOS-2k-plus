@@ -50,6 +50,12 @@ static void sys_invoke() {
     while (sc->type != SYS_UNUSED);
 }
 
+void sys_yield() {
+    struct syscall *sc = (struct syscall*)SYSCALL_ARG;
+    sc->type = SYS_YIELD;
+    sys_invoke();
+}
+
 int sys_send(int receiver, char* msg, int size) {
     if (size > SYSCALL_MSG_LEN) return -1;
 
@@ -78,6 +84,16 @@ void sys_exit(int status) {
     sys_send(GPID_PROCESS, (void*)&req, sizeof(req));
 }
 
+void sys_sleep(int time_units) {
+    struct proc_request req;
+    req.type = PROC_SLEEP;
+    req.argc = 1;
+    *(int*)req.argv = time_units;
+    sys_send(GPID_PROCESS, (void*)&req, sizeof(req));
+    // FIXME: a hacky-way of implementing sleep
+    // ASSUMPTION: the GPID_PROC runs at least once before the sys_yield() returns
+    sys_yield();
+}
 
 /* Syscall second half running in kernel-space */
 static void proc_send(struct syscall *sc);
@@ -99,6 +115,9 @@ void proc_syscall() {
         break;
     case SYS_SEND:
         proc_send(sc);
+        break;
+    case SYS_YIELD:
+        proc_yield();
         break;
     default:
         FATAL("proc_syscall: got unknown syscall type=%d", type);

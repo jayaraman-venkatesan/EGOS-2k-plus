@@ -17,7 +17,7 @@ static char buf[SYSCALL_MSG_LEN];
 
 void exit(int status) {
     grass->sys_exit(status);
-    while(1);
+    while(1){grass->sys_yield();};
 }
 
 int dir_lookup(int dir_ino, char* name) {

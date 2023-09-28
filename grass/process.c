@@ -14,17 +14,28 @@
 #include "syscall.h"
 #include <string.h>
 
+/* translating between pid and idx (in proc_set) */
+#define pid2idx(pid)  ((pid>=1 && pid<=MAX_NPROCESS) ? (pid-1) \
+                            : FATAL("pid2idx: invalid pid"))
+#define idx2pid(idx)  ((idx>=0 && idx<MAX_NPROCESS) ? (idx+1) \
+                            : FATAL("idx2pid: invalid idx"))
+
 static void proc_set_status(int pid, int status) {
-    for (int i = 0; i < MAX_NPROCESS; i++)
-        if (proc_set[i].pid == pid) proc_set[i].status = status;
+    ASSERTX(pid == proc_set[pid2idx(pid)].pid);
+    proc_set[pid2idx(pid)].status = status;
 }
 
 int proc_alloc() {
     for (int i = 0; i < MAX_NPROCESS; i++)
         if (proc_set[i].status == PROC_UNUSED) {
-            proc_set[i].pid = i + 1;
+            proc_set[i].pid = idx2pid(i);
             proc_set[i].status = PROC_LOADING;
-            return proc_set[i].pid;
+
+            /* notify scheduler that a process has arrived */
+            int pid = proc_set[i].pid;
+            proc_on_arrive(pid);
+
+            return pid;
         }
 
     FATAL("proc_alloc: reach the limit of %d processes", MAX_NPROCESS);
@@ -34,6 +45,8 @@ void proc_free(int pid) {
     if (pid != -1) {
         earth->mmu_free(pid);
         proc_set_status(pid, PROC_UNUSED);
+        /* notify scheduler that a process has stopped */
+        proc_on_stop(pid);
         return;
     }
 
@@ -43,7 +56,13 @@ void proc_free(int pid) {
             proc_set[i].status != PROC_UNUSED) {
             earth->mmu_free(proc_set[i].pid);
             proc_set[i].status = PROC_UNUSED;
+            proc_on_stop(proc_set[i].pid); // notify scheduler
         }
+}
+
+void proc_sleep(int pid, int time_units) {
+    /* notify scheduler that a process wants to sleep */
+    proc_on_sleep(pid, time_units);
 }
 
 void proc_set_ready(int pid) { proc_set_status(pid, PROC_READY); }

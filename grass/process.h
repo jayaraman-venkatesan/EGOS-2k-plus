@@ -10,7 +10,8 @@ enum {
     PROC_RUNNING,
     PROC_RUNNABLE,
     PROC_WAIT_TO_SEND,
-    PROC_WAIT_TO_RECV
+    PROC_WAIT_TO_RECV,
+    PROC_SLEEPING,
 };
 
 struct process{
@@ -19,6 +20,14 @@ struct process{
     int receiver_pid; /* used when waiting to send a message */
     void *sp, *mepc;  /* process context = stack pointer (sp)
                        * + machine exception program counter (mepc) */
+    // scheduling attributes
+    union {
+        unsigned char      chars[64];
+        unsigned int       ints[16];
+        float              floats[16];
+        unsigned long long longlongs[8];
+        double             doubles[8];
+    } schd_attr;
 };
 
 void timer_init();
@@ -26,6 +35,7 @@ void timer_reset();
 
 int  proc_alloc();
 void proc_free(int);
+void proc_sleep(int, int);
 void proc_set_ready (int);
 void proc_set_running (int);
 void proc_set_runnable (int);
@@ -44,3 +54,6 @@ extern struct process proc_set[MAX_NPROCESS];
 void trap_handler(); // defined in kernel.c
 void proc_yield();   // defined in scheduler.c
 void proc_syscall(); // defined in syscall.c
+void proc_on_arrive(int pid); // defined in scheduler.c
+void proc_on_sleep(int pid, int time_units);  // defined in scheduler.c
+void proc_on_stop(int pid);   // defined in scheduler.c

@@ -30,10 +30,13 @@ int main() {
 
     /* Initialize the grass interface functions */
     grass->proc_alloc = proc_alloc;
+    grass->proc_sleep = proc_sleep;
     grass->proc_free = proc_free;
     grass->proc_set_ready = proc_set_ready;
 
     grass->sys_exit = sys_exit;
+    grass->sys_yield = sys_yield;
+    grass->sys_sleep = sys_sleep;
     grass->sys_send = sys_send;
     grass->sys_recv = sys_recv;
 

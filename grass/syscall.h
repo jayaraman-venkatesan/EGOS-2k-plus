@@ -3,10 +3,11 @@
 #include "servers.h"
 
 enum syscall_type {
-	SYS_UNUSED,
-	SYS_RECV,
-	SYS_SEND,
-	SYS_NCALLS
+    SYS_UNUSED,
+    SYS_RECV,
+    SYS_SEND,
+    SYS_YIELD,
+    SYS_NCALLS
 };
 
 struct sys_msg {
@@ -22,5 +23,7 @@ struct syscall {
 };
 
 void sys_exit(int status);
+void sys_yield();
+void sys_sleep(int time_units);
 int  sys_send(int pid, char* msg, int size);
 int  sys_recv(int* pid, char* buf, int size);

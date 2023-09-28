@@ -47,6 +47,13 @@ int main() {
                 INFO("process %d running in the background", app_pid);
             grass->sys_send(GPID_SHELL, (void*)reply, sizeof(reply));
             break;
+        case PROC_SLEEP:
+            if (req->argc == 1 && sender >= GPID_USER_START) {
+                grass->proc_sleep(sender, *(int*)req->argv);
+            } else {
+                FATAL("sys_proc: invalid sleep");
+            }
+            break;
         case PROC_EXIT:
             grass->proc_free(sender);
 

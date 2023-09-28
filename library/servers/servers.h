@@ -23,6 +23,7 @@ struct proc_request {
     enum {
           PROC_SPAWN,
           PROC_EXIT,
+          PROC_SLEEP,
           PROC_KILLALL
     } type;
     int argc;
