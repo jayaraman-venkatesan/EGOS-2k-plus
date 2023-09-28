@@ -32,11 +32,22 @@ static void mtimecmp_set(long long time) {
     *(int*)(0x2004000 + 4) = (int)(time >> 32);
 }
 
-#define QUANTUM  500000
 void timer_reset() {
     mtimecmp_set(mtime_get() + QUANTUM);
 }
 
+m_uint64 gettime() {
+    static m_uint64 last_time = 0;
+    m_uint64 time = (m_uint64) mtime_get();
+    if (time < last_time) {
+        INFO("gettime() overflows");
+        last_time = time;
+    }
+    return time;
+}
+
 void timer_init() {
     earth->timer_reset = timer_reset;
+    earth->gettime = gettime;
 }
+
