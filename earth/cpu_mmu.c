@@ -31,7 +31,7 @@ void* mmu_alloc() {
 }
 
 int soft_tlb_free(int pid) {
-    ASSERT(pid > 0 && pid<MAX_NPROCESS, "pid is unexpected");
+    ASSERT(pid > 0 && pid<MAX_NPROCESS, "soft_tlb_free: pid is unexpected");
     page_mapping *pages = app_pages[pid];
     for (int i = 0; i < APPS_NPAGES; i++) {
         if (pages[i].private_addr != NULL) {
@@ -44,10 +44,10 @@ int soft_tlb_free(int pid) {
 
 /* Software TLB Translation */
 int soft_tlb_map(int pid, void *dst, void *src) {
-    ASSERT(pid > 0 && pid<MAX_NPROCESS, "pid is unexpected");
+    ASSERT(pid > 0 && pid<MAX_NPROCESS, "soft_tlb_map: pid is unexpected");
     ASSERT( ((unsigned int)src % PAGE_SIZE == 0) && \
             ((unsigned int)dst % PAGE_SIZE == 0), \
-            "mapping address is not page aligned");
+            "soft_tlb_map: mapping address is not page aligned");
 
     page_mapping *pages = app_pages[pid];
     for (int i = 0; i < APPS_NPAGES; i++) {
@@ -63,7 +63,7 @@ int soft_tlb_map(int pid, void *dst, void *src) {
 
 // a helper function to copy memory
 void memcopy_helper(int pid, int private2exec) {
-    ASSERT(pid > 0 && pid<MAX_NPROCESS, "pid is unexpected");
+    ASSERT(pid > 0 && pid<MAX_NPROCESS, "memcopy_helper: pid is unexpected");
 
     page_mapping *pages = app_pages[pid];
     for (int i = 0; i < APPS_NPAGES; i++) {

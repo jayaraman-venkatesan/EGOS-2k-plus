@@ -1,16 +1,19 @@
+# [lab3-ex2]: TODO: change "NAIVE" to "MLFQ"
+SCHEDULER=NAIVE
+
 RISCV_QEMU = qemu-system-riscv32
 RISCV_CC = riscv64-unknown-elf-gcc
 OBJDUMP = riscv64-unknown-elf-objdump
 OBJCOPY = riscv64-unknown-elf-objcopy
 
-LIB_HEADERS = library/*.h library/*/*.h
+LIB_HEADERS = Makefile library/*.h library/*/*.h
 EARTH_SRCS = earth/earth.S earth/*.c library/elf/*.c library/libc/*.c
 EARTH_HEADERS = earth/earth.lds $(LIB_HEADERS)
-GRASS_SRCS = grass/grass.S grass/context.S grass/*.c library/elf/*.c
+GRASS_SRCS = grass/grass.S grass/context.S grass/*.c library/elf/*.c library/libc/*.c
 GRASS_HEADERS = grass/grass.lds grass/*.h $(LIB_HEADERS)
 APPS_SRCS = apps/app.S library/*/*.c grass/context.S
 APP_HEADERS = apps/app.lds apps/*.h $(LIB_HEADERS)
-USRAPP_HEADERS = apps/user/*.h
+USRAPP_HEADERS = $(wildcard apps/user/*.h)
 
 
 # CFLAGS = -march=rv32i -mabi=ilp32 -mcmodel=medlow -ffunction-sections -fdata-sections
@@ -20,7 +23,7 @@ INCLUDE = -Ilibrary -Ilibrary/elf -Ilibrary/libc -Ilibrary/file -Ilibrary/server
 QEMU_FLAGS = -bios none -readconfig $(QEMU)/sifive-e31.cfg -kernel $(QEMU)/qemu.elf -nographic
 VERBOSE_LINKER = -Xlinker --verbose
 
-COMMON = $(CFLAGS) $(LDFLAGS) $(INCLUDE) -D CPU_CLOCK_RATE=65000000
+COMMON = $(CFLAGS) $(LDFLAGS) $(INCLUDE) -D CPU_CLOCK_RATE=65000000 -D$(SCHEDULER)
 
 APPS_LD = -Tapps/app.lds -lc -lgcc
 GRASS_LD = -Tgrass/grass.lds -lc -lgcc
