@@ -13,23 +13,23 @@
  */
 #include "egos.h"
 
-static long long mtime_get() {
-    int low, high;
+static m_uint64 mtime_get() {
+    m_uint32 low, high;
     /* Q: Why having a loop? */
     do {
-        high = *(int*)(0x200bff8 + 4);
-        low  = *(int*)(0x200bff8);
-    }  while ( *(int*)(0x200bff8 + 4) != high );
+        high = *(m_uint32*)(0x200bff8 + 4);
+        low  = *(m_uint32*)(0x200bff8);
+    }  while ( *(m_uint32*)(0x200bff8 + 4) != high );
 
-    return (((long long)high) << 32) | low;
+    return (((m_uint64)high) << 32) | (m_uint64)low;
 }
 
 /* set "mtimecmp" to "time" */
-static void mtimecmp_set(long long time) {
+static void mtimecmp_set(m_uint64 time) {
     /* Q: Why setting mtimecmp low to all 0xF? */
-    *(int*)(0x2004000 + 4) = 0xFFFFFFFF;
-    *(int*)(0x2004000 + 0) = (int)time;
-    *(int*)(0x2004000 + 4) = (int)(time >> 32);
+    *(m_uint32*)(0x2004000 + 4) = 0xFFFFFFFF;
+    *(m_uint32*)(0x2004000 + 0) = (m_uint32)time;
+    *(m_uint32*)(0x2004000 + 4) = (m_uint32)(time >> 32);
 }
 
 void timer_reset() {
