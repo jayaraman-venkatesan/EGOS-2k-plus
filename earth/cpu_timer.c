@@ -10,6 +10,8 @@
  * and section 9.1, 9.3 of references/sifive-fe310-v19p04.pdf
  *
  * updated by CS6640 23fall staff
+ * and thanks to Micah Weston to discover an implicit conversion bug:
+ *   https://github.com/yhzhang0128/egos-2000/issues/13
  */
 #include "egos.h"
 
