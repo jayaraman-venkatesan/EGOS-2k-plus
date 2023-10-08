@@ -24,6 +24,12 @@
 #define idx2pid(idx)  ((idx>=0 && idx<MAX_NPROCESS) ? (idx+1) \
                             : FATAL("idx2pid: invalid idx"))
 
+
+enum {
+   HIGH_PRIORITY,
+   MEDIUM_PRIORITY,
+   LOW_PRIORITY,
+};
 /* [lab3-ex1]
  * TODO: plan how to use "schd_attr"
  *  - You need to design you own
@@ -34,8 +40,85 @@
 // #define arrive_time schd_attr.longlongs[0]
 // #define schded_count schd_attr.ints[15]
 
+#define arrive_time schd_attr.longlongs[0]
+
+#define cpu_time schd_attr.longlongs[1]
+
+#define yeilds schd_attr.longlongs[2]
+
+#define response_time schd_attr.longlongs[3]
+
+#define turn_around_time schd_attr.longlongs[4]
+
+#define cpu_start_time schd_attr.longlongs[5]
+
+
+
+
+unsigned long long ULLONG_MAX = 0xffffffffffffffff;
 
 static int mlfq();
+
+
+static queue_t high_priority_queue;
+
+static queue_t low_priority_queue;
+
+static queue_t medium_priority_queue;
+
+
+void update_cpu_time(int idx){
+
+   
+
+    unsigned long long cur_time = earth->gettime();
+
+    if (cur_time >= proc_set[idx].cpu_start_time) {
+        proc_set[idx].cpu_time += (cur_time - proc_set[idx].cpu_start_time) ;
+    } else {
+    
+        // Time overflow occurred, handle it
+        proc_set[idx].cpu_time += ULLONG_MAX - proc_set[idx].cpu_start_time +  cur_time + 1;
+    }
+
+}
+
+
+void set_turnaround_time(int pid){
+   int idx = pid2idx(pid);
+
+   unsigned long long cur_time = earth->gettime();
+
+    if (cur_time >= proc_set[idx].arrive_time) {
+        // No time overflow occurred
+        proc_set[idx].turn_around_time = (cur_time - proc_set[idx].arrive_time) ;
+    } else {
+        // Time overflow occurred, handle it
+        proc_set[idx].turn_around_time = ULLONG_MAX - proc_set[idx].arrive_time +  cur_time + 1;
+    }
+
+
+}
+void set_cpu_time(){
+
+    proc_set[proc_curr_idx].cpu_time = earth->gettime();
+
+}
+
+void set_response_time(){
+
+    unsigned long long cur_time = earth->gettime();
+
+    if (cur_time >= proc_set[proc_curr_idx].arrive_time) {
+        // No time overflow occurred
+        proc_set[proc_curr_idx].response_time = (cur_time - proc_set[proc_curr_idx].arrive_time) ;
+    } else {
+        // Time overflow occurred, handle it
+        proc_set[proc_curr_idx].response_time = ULLONG_MAX - proc_set[proc_curr_idx].arrive_time +  cur_time + 1;
+    }
+
+}
+
 
 /* schedule next process */
 void proc_yield() {
@@ -49,8 +132,8 @@ void proc_yield() {
      *     -- a challenge is that the returned time may overflow
      * */
 
-
-
+    update_cpu_time(proc_curr_idx);
+   
 
     /* Find the next runnable process */
     int next_idx = -1;
@@ -73,15 +156,31 @@ void proc_yield() {
     if (curr_status == PROC_RUNNING) proc_set_runnable(curr_pid);
 
     /* Switch to the next runnable process and reset timer */
+    int test_idx = proc_curr_idx;
     proc_curr_idx = next_idx;
     ASSERT(curr_pid > 0 && curr_pid < pid2idx(MAX_NPROCESS), \
             "proc_yield: invalid pid to switch");
     earth->mmu_switch(curr_pid);
     earth->timer_reset();
 
+
+
     /* [lab3-ex1]
      * TODO: update "schd_attr" for the next process (new process)
      * */
+
+    if(proc_set[proc_curr_idx].yeilds == 0){
+        set_response_time(proc_curr_idx);
+        //set_cpu_time(proc_curr_idx);
+    }
+
+
+     proc_set[proc_curr_idx].cpu_start_time = earth->gettime();
+     
+     proc_set[proc_curr_idx].yeilds += 1;
+
+
+     
 
 
 
@@ -114,9 +213,106 @@ void proc_yield() {
 void mlfq_init() {
     /* TODO: your code here*/
 
-    FATAL("mlfq_init not implemented");
+    printf("hello init start\n");
+    queue_init(&high_priority_queue);
+    queue_init(&low_priority_queue);
+    queue_init(&medium_priority_queue);
+    printf("hello init end\n");
+    //FATAL("mlfq_init not implemented");
 
 
+
+}
+
+
+int get_from_queue(queue_t q){
+    int r_pid = -1;
+    node_t *current = q.head;
+    while (current != NULL) {
+        struct process *p = (struct process *) current->item;
+        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
+            r_pid = p->pid;
+            break;
+        }
+        current = current->next;
+    }
+
+   
+    printf("returning [%d]\n",r_pid);
+    return r_pid;
+}
+
+
+
+
+
+
+
+int find_in_high_priority_queue(){
+    
+
+    int r_pid = -1;
+    node_t *current = high_priority_queue.head;
+    while (current != NULL) {
+        struct process *p = (struct process *) current->item;
+        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
+            r_pid = p->pid;
+            break;
+        }
+        current = current->next;
+    }
+
+   
+    //printf("returning [%d]\n",r_pid);
+    return r_pid;
+
+}
+
+
+int find_in_medium_priority_queue(){
+    
+
+    int r_pid = -1;
+    node_t *current = medium_priority_queue.head;
+    while (current != NULL) {
+        struct process *p = (struct process *) current->item;
+        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
+            r_pid = p->pid;
+            break;
+        }
+        current = current->next;
+    }
+
+   
+    //printf("returning [%d]\n",r_pid);
+    return r_pid;
+
+
+
+
+}
+
+
+int find_in_low_priority_queue(){
+    
+
+    int r_pid = -1;
+    node_t *current = low_priority_queue.head;
+    while (current != NULL) {
+        struct process *p = (struct process *) current->item;
+        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
+            r_pid = p->pid;
+            break;
+        }
+        current = current->next;
+    }
+
+   
+   // printf("returning [%d]\n",r_pid);
+    return r_pid;
+
+
+    return -1;
 
 }
 
@@ -141,10 +337,69 @@ void mlfq_init() {
 static int mlfq() {
     /* TODO: your code here */
 
+    //printf("PROC YEILDING IS [%d]\n",curr_pid);
+    int return_pid = -1;
+
+    int flag = 0;
+
+    // high priority queue check
+    //printf("HIGH QUEUE\n");
+    //dump_queue(&high_priority_queue);
+    return_pid = find_in_high_priority_queue();
+
+    if(return_pid != -1){
+        flag = 1;
+        rm_item(&high_priority_queue,&proc_set[pid2idx(return_pid)]);
+    }
+
+    if(!flag){
+        return_pid = find_in_medium_priority_queue();
+        if(return_pid != -1){
+            flag = 1;
+            rm_item(&medium_priority_queue,&proc_set[pid2idx(return_pid)]);
+        }
+    }
+
+     if(!flag){
+        return_pid = find_in_low_priority_queue();
+        if(return_pid != -1){
+            flag = 1;
+            rm_item(&low_priority_queue,&proc_set[pid2idx(return_pid)]);
+        }
+    }
 
 
 
-    return 0;
+
+    if(return_pid == -1){
+        if(proc_set[proc_curr_idx].status == PROC_RUNNING){
+            return curr_pid;
+        } else {
+            return 0;
+        }
+    } 
+
+    if(return_pid != -1){
+
+        if(proc_set[proc_curr_idx].status != PROC_UNUSED){
+            if(proc_set[proc_curr_idx].pid < USER_PID_START || proc_set[proc_curr_idx].cpu_time < 1){
+                //printf("ENQUEUEING [%d] IN HIGH\n",proc_set[proc_curr_idx].pid);
+                enqueue(&high_priority_queue,&proc_set[proc_curr_idx]);
+            } else if(proc_set[proc_curr_idx].cpu_time > 1 && proc_set[proc_curr_idx].cpu_time < 2){
+                enqueue(&medium_priority_queue,&proc_set[proc_curr_idx]);
+            } else if(proc_set[proc_curr_idx].cpu_time > 2){
+                enqueue(&low_priority_queue,&proc_set[proc_curr_idx]);
+            }
+        }
+       
+    }
+
+    return return_pid;
+
+    
+    
+
+   
 }
 
 
@@ -155,7 +410,7 @@ static int mlfq() {
  * - the returned value is a float number (how many QUANTUM)
  */
 static float tar_time(int pid) {
-    return 0;
+    return (float)proc_set[pid2idx(pid)].turn_around_time / QUANTUM;
 }
 
 /* [lab-ex1]
@@ -163,7 +418,8 @@ static float tar_time(int pid) {
  * - the returned value is a float number (how many QUANTUM)
  */
 static float resp_time(int pid) {
-  return 0;
+
+    return (float)proc_set[pid2idx(pid)].response_time / QUANTUM;
 }
 
 /* [lab-ex1]
@@ -171,7 +427,7 @@ static float resp_time(int pid) {
  * - the returned value is an integer
  */
 static int yield_num(int pid) {
-  return 0;
+  return proc_set[pid2idx(pid)].yeilds;
 }
 
 /* [lab-ex1]
@@ -179,7 +435,7 @@ static int yield_num(int pid) {
  * - the returned value is a float number (how many QUANTUM)
  */
 static float cpu_runtime(int pid) {
-  return 0;
+  return (float)proc_set[pid2idx(pid)].cpu_time / QUANTUM;
 }
 
 
@@ -191,6 +447,14 @@ void proc_on_arrive(int pid) {
      * TODO: collect pid's scheduling information
      * hint: remember to init/clear the pid's "schd_attr"
      */
+
+
+    proc_set[pid2idx(pid)].arrive_time = earth->gettime();
+    proc_set[pid2idx(pid)].response_time = 0;
+    proc_set[pid2idx(pid)].yeilds=0;
+    proc_set[pid2idx(pid)].cpu_time=0;
+
+  
 
 
 
@@ -210,10 +474,8 @@ void proc_on_arrive(int pid) {
    * TODO: add the process to MLFQ
    * Note that pid is not the curr_pid
    */
-
-
-
-
+  
+    enqueue(&high_priority_queue , &proc_set[pid2idx(pid)]);
 
 #endif
 }
@@ -226,7 +488,10 @@ void proc_on_stop(int pid) {
      * TODO: collect pid's scheduling information */
 
 
+    update_cpu_time(pid2idx(pid));
+    set_turnaround_time(pid);
 
+    
 
     INFO("proc %d died after %d yields, turnaround time: %.2f, response time: %.2f, cputime: %.2f",
             pid, yield_num(pid),
@@ -236,6 +501,20 @@ void proc_on_stop(int pid) {
 #ifdef MLFQ
     /* [lab3-ex2]
      * TODO: remove process from queues */
+
+    
+    
+    if(in_queue(&high_priority_queue,&proc_set[pid2idx(pid)])){
+        rm_item(&high_priority_queue,&proc_set[pid2idx(pid)]);
+    } 
+
+    else if(in_queue(&medium_priority_queue,&proc_set[pid2idx(pid)])){
+        rm_item(&medium_priority_queue,&proc_set[pid2idx(pid)]);
+    } 
+
+    else if(in_queue(&low_priority_queue,&proc_set[pid2idx(pid)])){
+        rm_item(&low_priority_queue,&proc_set[pid2idx(pid)]);
+    } 
 
 
 
@@ -266,4 +545,3 @@ void proc_on_sleep(int pid, int time_units) {
 
 
 }
-
