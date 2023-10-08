@@ -66,6 +66,15 @@ static queue_t low_priority_queue;
 
 static queue_t medium_priority_queue;
 
+/* [lab-ex1]
+ * TODO: return the actual CPU time the pid used
+ * - the returned value is a float number (how many QUANTUM)
+ */
+static float cpu_runtime(int pid) {
+  return (float)proc_set[pid2idx(pid)].cpu_time / QUANTUM;
+}
+
+
 
 void update_cpu_time(int idx){
 
@@ -243,78 +252,44 @@ int get_from_queue(queue_t q){
 }
 
 
+int find_in_queue(queue_t *q){
 
-
-
-
-
-int find_in_high_priority_queue(){
-    
 
     int r_pid = -1;
-    node_t *current = high_priority_queue.head;
-    while (current != NULL) {
-        struct process *p = (struct process *) current->item;
-        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
-            r_pid = p->pid;
+    int first_id = -1;
+    struct process *p = (struct process *) dequeue(q);
+    //printf("IMP P IS  [%d]\n",p->pid);
+    while( p  != NULL ){
+
+    //  printf("P IS  [%d]\n",p->pid);
+        
+        if(first_id != p->pid){
+            if(p->status == PROC_READY || p->status == PROC_RUNNABLE){
+                r_pid = p->pid;
+                break;
+            } else {
+                //printf("ENQUEUED [%d]\n",p->pid);
+                enqueue(q,p);
+            }
+        } else if(first_id == p->pid) {
+            enqueue(q,p);
             break;
         }
-        current = current->next;
+
+        if(first_id == -1){
+            first_id = p->pid;
+        }  
+
+        p = (struct process *) dequeue(q);
+
+        
+
     }
 
-   
-    //printf("returning [%d]\n",r_pid);
     return r_pid;
 
 }
 
-
-int find_in_medium_priority_queue(){
-    
-
-    int r_pid = -1;
-    node_t *current = medium_priority_queue.head;
-    while (current != NULL) {
-        struct process *p = (struct process *) current->item;
-        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
-            r_pid = p->pid;
-            break;
-        }
-        current = current->next;
-    }
-
-   
-    //printf("returning [%d]\n",r_pid);
-    return r_pid;
-
-
-
-
-}
-
-
-int find_in_low_priority_queue(){
-    
-
-    int r_pid = -1;
-    node_t *current = low_priority_queue.head;
-    while (current != NULL) {
-        struct process *p = (struct process *) current->item;
-        if(p->status == PROC_RUNNABLE || p->status == PROC_READY){
-            r_pid = p->pid;
-            break;
-        }
-        current = current->next;
-    }
-
-   
-   // printf("returning [%d]\n",r_pid);
-    return r_pid;
-
-
-    return -1;
-
-}
 
 /* [lab3-ex2]
  * implement MLFQ scheduler
@@ -342,29 +317,28 @@ static int mlfq() {
 
     int flag = 0;
 
-    // high priority queue check
-    //printf("HIGH QUEUE\n");
-    //dump_queue(&high_priority_queue);
-    return_pid = find_in_high_priority_queue();
+
+
+    return_pid = find_in_queue(&high_priority_queue);
+    
 
     if(return_pid != -1){
         flag = 1;
-        rm_item(&high_priority_queue,&proc_set[pid2idx(return_pid)]);
+       
     }
 
     if(!flag){
-        return_pid = find_in_medium_priority_queue();
+        return_pid = find_in_queue(&medium_priority_queue);
         if(return_pid != -1){
             flag = 1;
-            rm_item(&medium_priority_queue,&proc_set[pid2idx(return_pid)]);
+           
         }
     }
 
      if(!flag){
-        return_pid = find_in_low_priority_queue();
+        return_pid = find_in_queue(&low_priority_queue);
         if(return_pid != -1){
             flag = 1;
-            rm_item(&low_priority_queue,&proc_set[pid2idx(return_pid)]);
         }
     }
 
@@ -382,12 +356,14 @@ static int mlfq() {
     if(return_pid != -1){
 
         if(proc_set[proc_curr_idx].status != PROC_UNUSED){
-            if(proc_set[proc_curr_idx].pid < USER_PID_START || proc_set[proc_curr_idx].cpu_time < 1){
+            if(proc_set[proc_curr_idx].pid < USER_PID_START || (cpu_runtime(proc_set[proc_curr_idx].pid) < 1)){
                 //printf("ENQUEUEING [%d] IN HIGH\n",proc_set[proc_curr_idx].pid);
                 enqueue(&high_priority_queue,&proc_set[proc_curr_idx]);
-            } else if(proc_set[proc_curr_idx].cpu_time > 1 && proc_set[proc_curr_idx].cpu_time < 2){
+            } else if(cpu_runtime(proc_set[proc_curr_idx].pid) > 1 && cpu_runtime(proc_set[proc_curr_idx].pid) < 2){
+               // printf("ENQUEUES [%d] in MED queue CPU TIME [%f]\n",proc_set[proc_curr_idx].pid,cpu_runtime(proc_set[proc_curr_idx].pid));
                 enqueue(&medium_priority_queue,&proc_set[proc_curr_idx]);
-            } else if(proc_set[proc_curr_idx].cpu_time > 2){
+            } else if(cpu_runtime(proc_set[proc_curr_idx].pid) > 2){
+                //printf("ENQUEUES [%d] in LOW queue CPU TIME [%f]\n",proc_set[proc_curr_idx].pid,cpu_runtime(proc_set[proc_curr_idx].pid));
                 enqueue(&low_priority_queue,&proc_set[proc_curr_idx]);
             }
         }
@@ -430,13 +406,6 @@ static int yield_num(int pid) {
   return proc_set[pid2idx(pid)].yeilds;
 }
 
-/* [lab-ex1]
- * TODO: return the actual CPU time the pid used
- * - the returned value is a float number (how many QUANTUM)
- */
-static float cpu_runtime(int pid) {
-  return (float)proc_set[pid2idx(pid)].cpu_time / QUANTUM;
-}
 
 
 /* process life-cycle functions */

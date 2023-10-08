@@ -68,20 +68,31 @@ void *dequeue(queue_t *q) {
      * TODO: your code here
      */
 
-    if(q->head != NULL){
-    	node_t *node = q->head;
-    	//char *data = node->data;
-    	q->head = q->head->next;
-    	//free(node->data);
-    	//free(node);
-    	if(q->head == NULL){
-    		q->tail = NULL;
-    	}
-    	
-    	return node;
-    } 
-    
-    return NULL;
+    //printf("HERE BRO\n");
+
+     if (q->head == NULL) {
+        // Queue is empty, return NULL
+        return NULL;
+    }
+
+    // Get the item at the front of the queue and the corresponding node
+    void *item = q->head->item;
+    node_t *old_head = q->head;
+
+    // Update the head pointer to the next node
+    q->head = q->head->next;
+
+    // Free the memory of the old head node
+
+    free(old_head);
+
+    // If the queue becomes empty after dequeue, update the tail pointer
+    if (q->head == NULL) {
+        q->tail = NULL;
+    }
+
+
+    return item;
 }
 
 /* [lab3-ex2]
