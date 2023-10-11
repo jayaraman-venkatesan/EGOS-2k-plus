@@ -52,6 +52,10 @@ enum {
 
 #define cpu_start_time schd_attr.longlongs[5]
 
+#define sleep_start_time schd_attr.longlongs[6]
+
+#define sleep_quantum schd_attr.longlongs[7]
+
 
 
 
@@ -65,6 +69,9 @@ static queue_t high_priority_queue;
 static queue_t low_priority_queue;
 
 static queue_t medium_priority_queue;
+
+static queue_t sleeping_queue;
+
 
 /* [lab-ex1]
  * TODO: return the actual CPU time the pid used
@@ -222,11 +229,12 @@ void proc_yield() {
 void mlfq_init() {
     /* TODO: your code here*/
 
-    printf("hello init start\n");
+
     queue_init(&high_priority_queue);
     queue_init(&low_priority_queue);
     queue_init(&medium_priority_queue);
-    printf("hello init end\n");
+    queue_init(&sleeping_queue);
+
     //FATAL("mlfq_init not implemented");
 
 
@@ -261,7 +269,6 @@ int find_in_queue(queue_t *q){
     //printf("IMP P IS  [%d]\n",p->pid);
     while( p  != NULL ){
 
-    //  printf("P IS  [%d]\n",p->pid);
         
         if(first_id != p->pid){
             if(p->status == PROC_READY || p->status == PROC_RUNNABLE){
@@ -284,6 +291,64 @@ int find_in_queue(queue_t *q){
 
         
 
+    }
+
+    return r_pid;
+
+}
+
+int is_present(){
+    if(sleeping_queue.tail == NULL && sleeping_queue.tail == NULL){
+        return 0;
+    } 
+
+    return 1;
+}
+
+int update_sleeping(){
+
+    int r_pid = -1;
+    int first_id = -1;
+
+    static int loop = 1;
+    //printf("came for [%d]...\n",loop);
+    loop += 1;
+
+    struct process *p = (struct process *) dequeue(&sleeping_queue);
+    while(p != NULL){
+        
+
+        if(first_id != p->pid){
+
+            unsigned long long cur_time = earth->gettime();
+            int wake_flag = 0;
+        
+            if(cur_time > p->sleep_start_time){
+                unsigned long long sleeping_time = cur_time - p->sleep_start_time;
+                if((float) sleeping_time /QUANTUM > p->sleep_quantum){
+                    r_pid = p->pid;
+                    break;
+                } else {
+                    enqueue(&sleeping_queue,p);
+                } 
+            }   
+
+        } else if(first_id == p->pid){
+            enqueue(&sleeping_queue,p);
+            break;
+        }
+
+       
+
+        if(first_id == -1){
+            
+            first_id = p->pid;
+        }
+        
+         
+
+
+        p = dequeue(&sleeping_queue);
     }
 
     return r_pid;
@@ -313,19 +378,31 @@ static int mlfq() {
     /* TODO: your code here */
 
     //printf("PROC YEILDING IS [%d]\n",curr_pid);
+    //update_sleeping();
+
+
     int return_pid = -1;
 
     int flag = 0;
 
-
-
-    return_pid = find_in_queue(&high_priority_queue);
-    
-
+    return_pid = update_sleeping();
     if(return_pid != -1){
         flag = 1;
        
     }
+
+    if(!flag){
+        return_pid = find_in_queue(&high_priority_queue);
+        if(return_pid != -1){
+         flag = 1;
+       
+        }
+    }
+
+   
+    
+
+   
 
     if(!flag){
         return_pid = find_in_queue(&medium_priority_queue);
@@ -349,6 +426,12 @@ static int mlfq() {
         if(proc_set[proc_curr_idx].status == PROC_RUNNING){
             return curr_pid;
         } else {
+            if(is_present()){
+               while(return_pid == -1){
+                 return_pid = update_sleeping();
+               }
+               return return_pid;
+            }
             return 0;
         }
     } 
@@ -360,7 +443,7 @@ static int mlfq() {
                 //printf("ENQUEUEING [%d] IN HIGH\n",proc_set[proc_curr_idx].pid);
                 enqueue(&high_priority_queue,&proc_set[proc_curr_idx]);
             } else if(cpu_runtime(proc_set[proc_curr_idx].pid) > 1 && cpu_runtime(proc_set[proc_curr_idx].pid) < 2){
-               // printf("ENQUEUES [%d] in MED queue CPU TIME [%f]\n",proc_set[proc_curr_idx].pid,cpu_runtime(proc_set[proc_curr_idx].pid));
+                //printf("ENQUEUES [%d] in MED queue CPU TIME [%f]\n",proc_set[proc_curr_idx].pid,cpu_runtime(proc_set[proc_curr_idx].pid));
                 enqueue(&medium_priority_queue,&proc_set[proc_curr_idx]);
             } else if(cpu_runtime(proc_set[proc_curr_idx].pid) > 2){
                 //printf("ENQUEUES [%d] in LOW queue CPU TIME [%f]\n",proc_set[proc_curr_idx].pid,cpu_runtime(proc_set[proc_curr_idx].pid));
@@ -508,7 +591,53 @@ void proc_on_stop(int pid) {
 void proc_on_sleep(int pid, int time_units) {
     ASSERTX(proc_set[pid2idx(pid)].status != PROC_SLEEPING);
 
+
+
+    proc_set[pid2idx(pid)].status = PROC_SLEEPING;
+
+    proc_set[pid2idx(pid)].sleep_quantum = time_units;
+
+    proc_set[pid2idx(pid)].sleep_start_time = earth->gettime();
     /* TODO: your code here */
+
+    if(in_queue(&high_priority_queue , &proc_set[pid2idx(pid)]) == 1){    
+        
+        rm_item(&high_priority_queue,&proc_set[pid2idx(pid)]);
+
+       
+        enqueue(&sleeping_queue,&proc_set[pid2idx(pid)]);
+
+    }
+
+
+    else if(in_queue(&medium_priority_queue , &proc_set[pid2idx(pid)]) == 1){
+
+       
+        
+        rm_item(&medium_priority_queue,&proc_set[pid2idx(pid)]);
+
+       
+        enqueue(&sleeping_queue,&proc_set[pid2idx(pid)]);
+
+     
+
+    }
+
+
+
+    else if(in_queue(&low_priority_queue , &proc_set[pid2idx(pid)]) == 1){
+
+      
+        
+        rm_item(&low_priority_queue,&proc_set[pid2idx(pid)]);
+
+      
+        enqueue(&sleeping_queue,&proc_set[pid2idx(pid)]);
+
+      
+
+    }
+
 
 
 
