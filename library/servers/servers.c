@@ -27,7 +27,8 @@ int dir_lookup(int dir_ino, char* name) {
     strcpy(req.name, name);
     grass->sys_send(GPID_DIR, (void*)&req, sizeof(req));
 
-    grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
+    sender = GPID_DIR;
+    grass->sys_recv(&sender, buf, sizeof(struct dir_reply));
     if (sender != GPID_DIR) FATAL("dir_lookup: an error occurred");
     struct dir_reply *reply = (void*)buf;
 
@@ -41,10 +42,42 @@ int file_read(int file_ino, int offset, char* block) {
     req.offset = offset;
     grass->sys_send(GPID_FILE, (void*)&req, sizeof(req));
 
-    grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
+    sender = GPID_FILE;
+    grass->sys_recv(&sender, buf, sizeof(struct file_reply));
     if (sender != GPID_FILE) FATAL("file_read: an error occurred");
     struct file_reply *reply = (void*)buf;
     memcpy(block, reply->block.bytes, BLOCK_SIZE);
 
     return reply->status == FILE_OK? 0 : -1;
+}
+
+int service_register(char *name) {
+    ASSERTX(strlen(name) < SERV_NAME_SIZE);
+
+    /* TODO:
+     * implement service register
+     */
+
+    FATAL("service_register not implemented");
+}
+
+
+int service_discover(char *name) {
+    ASSERTX(strlen(name) < SERV_NAME_SIZE);
+
+    /* TODO:
+     * implement service discovery
+     */
+    FATAL("service_discover not implemented");
+}
+
+
+int service_destroy(char *name) {
+    ASSERTX(strlen(name) < SERV_NAME_SIZE);
+
+    /* TODO:
+     * implement service destory
+     */
+
+    FATAL("service_destroy not implemented");
 }

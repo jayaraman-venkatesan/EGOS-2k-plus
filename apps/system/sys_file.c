@@ -28,6 +28,7 @@ int main() {
         int sender, r;
         struct file_request *req = (void*)buf;
         struct file_reply *reply = (void*)buf;
+        sender = 0;
         grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
 
         switch (req->type) {

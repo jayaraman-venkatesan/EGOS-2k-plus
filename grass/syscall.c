@@ -40,6 +40,12 @@ sys_send/recv (syscall.c)
 #include "process.h"
 #include <string.h>
 
+/* FIXME: move this to egos.h */
+#define pid2idx(pid)  ((pid>=1 && pid<=MAX_NPROCESS) ? (pid-1) \
+                            : FATAL("pid2idx: invalid pid"))
+#define idx2pid(idx)  ((idx>=0 && idx<MAX_NPROCESS) ? (idx+1) \
+                            : FATAL("idx2pid: invalid idx"))
+
 
 /* Syscall first half running in user-space */
 static void sys_invoke() {
@@ -72,6 +78,14 @@ int sys_recv(int* sender, char* buf, int size) {
 
     struct syscall *sc = (struct syscall*)SYSCALL_ARG;
     sc->type = SYS_RECV;
+    if (*sender > 0) {
+        ASSERTX(*sender < MAX_NPROCESS);
+        // the process has an expected sender
+        sc->msg.sender = *sender;
+    } else {
+        // waiting for any sender
+        sc->msg.sender = 0;
+    }
     sys_invoke();
     memcpy(buf, sc->msg.content, size);
     if (sender) *sender = sc->msg.sender;
@@ -124,55 +138,72 @@ void proc_syscall() {
     }
 }
 
+void msgcpy(int src_pid, int dst_pid, void* src_addr, void* dst_addr, int size) {
+    ASSERTX(size > 0 && size < PAGE_SIZE);
+
+    char buf[size];
+    /* Copy message from src to a temp buffer*/
+    earth->mmu_switch(src_pid);
+    memcpy(buf, src_addr, size);
+    /* Copy message from the temp buffer to dst*/
+    earth->mmu_switch(dst_pid);
+    memcpy(dst_addr, buf, size);
+}
+
+
 static void proc_send(struct syscall *sc) {
     sc->msg.sender = curr_pid;
+
+    /* Find the receiver */
     int receiver = sc->msg.receiver;
+    int recv_idx = pid2idx(receiver);
+    ASSERTX(proc_set[recv_idx].pid == receiver);
 
-    for (int i = 0; i < MAX_NPROCESS; i++) {
-        if (proc_set[i].pid == receiver) {
-            /* Find the receiver */
-            if (proc_set[i].status != PROC_WAIT_TO_RECV) {
-                curr_status = PROC_WAIT_TO_SEND;
-                proc_set[proc_curr_idx].receiver_pid = receiver;
-            } else {
-                /* Copy message from sender to kernel stack */
-                struct sys_msg tmp;
-                earth->mmu_switch(curr_pid);
-                memcpy(&tmp, &sc->msg, sizeof(tmp));
+    /* if receiver status is not waiting OR
+     *    the receiver is waiting for another pid:
+     *    wait_to_send */
+    if (proc_set[recv_idx].status != PROC_WAIT_TO_RECV ||
+          (proc_set[recv_idx].from_sender_pid != curr_pid &&
+           proc_set[recv_idx].from_sender_pid != 0) )
+    {
+        curr_status = PROC_WAIT_TO_SEND;
+        proc_set[proc_curr_idx].to_receiver_pid = receiver;
+    } else {
+        /* Copy message from sender to kernel buf, then to receiver*/
+        msgcpy(curr_pid, receiver, &sc->msg, &sc->msg,\
+                sizeof(struct sys_msg));
 
-                /* Copy message from kernel stack to receiver */
-                earth->mmu_switch(receiver);
-                memcpy(&sc->msg, &tmp, sizeof(tmp));
-
-                /* Set receiver process as runnable */
-                proc_set_runnable(receiver);
-            }
-            proc_yield();
-            return;
-        }
+        /* Set receiver process as runnable */
+        proc_set_runnable(receiver);
     }
 
-    sc->retval = -1;
+    proc_yield();
+    return;
 }
 
 static void proc_recv(struct syscall *sc) {
+    int exp_sender = sc->msg.sender;
+    ASSERTX(exp_sender >= 0 && exp_sender < MAX_NPROCESS);
+    proc_set[proc_curr_idx].from_sender_pid = exp_sender; // [0, MAX_NPROCESS)
+
     int sender = -1;
-    for (int i = 0; i < MAX_NPROCESS; i++)
-        if (proc_set[i].status == PROC_WAIT_TO_SEND &&
-            proc_set[i].receiver_pid == curr_pid)
-            sender = proc_set[i].pid;
+    if (exp_sender == 0) {  // search for any valid sender
+        for (int i = 0; i < MAX_NPROCESS; i++)
+            if (proc_set[i].status == PROC_WAIT_TO_SEND &&
+                proc_set[i].to_receiver_pid == curr_pid)
+                sender = proc_set[i].pid;
+    } else { // target one sender
+        if (proc_set[pid2idx(exp_sender)].status == PROC_WAIT_TO_SEND &&
+            proc_set[pid2idx(exp_sender)].to_receiver_pid == curr_pid)
+                sender = exp_sender;
+    }
 
     if (sender == -1) {
         curr_status = PROC_WAIT_TO_RECV;
     } else {
-        /* Copy message from sender to kernel stack */
-        struct sys_msg tmp;
-        earth->mmu_switch(sender);
-        memcpy(&tmp, &sc->msg, sizeof(tmp));
-
-        /* Copy message from kernel stack to receiver */
-        earth->mmu_switch(curr_pid);
-        memcpy(&sc->msg, &tmp, sizeof(tmp));
+        /* Copy message from sender to kernel buf, then to receiver*/
+        msgcpy(sender, curr_pid, &sc->msg, &sc->msg,\
+                sizeof(struct sys_msg));
 
         /* Set sender process as runnable */
         proc_set_runnable(sender);

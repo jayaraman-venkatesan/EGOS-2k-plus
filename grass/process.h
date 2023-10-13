@@ -17,7 +17,8 @@ enum {
 struct process{
     int pid;
     int status;
-    int receiver_pid; /* used when waiting to send a message */
+    int from_sender_pid; /* used when waiting to receive a message */
+    int to_receiver_pid; /* used when waiting to send a message */
     void *sp, *mepc;  /* process context = stack pointer (sp)
                        * + machine exception program counter (mepc) */
     // scheduling attributes

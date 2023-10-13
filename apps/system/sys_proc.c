@@ -23,18 +23,26 @@ int main() {
     char buf[SYSCALL_MSG_LEN];
 
     sys_spawn(SYS_FILE_EXEC_START);
-    grass->sys_recv(NULL, buf, SYSCALL_MSG_LEN);
+    sender = GPID_FILE;
+    grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
     INFO("sys_proc receives: %s", buf);
 
     sys_spawn(SYS_DIR_EXEC_START);
-    grass->sys_recv(NULL, buf, SYSCALL_MSG_LEN);
+    sender = GPID_DIR;
+    grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
     INFO("sys_proc receives: %s", buf);
+
+    // sys_spawn(SYS_SERV_EXEC_START);
+    // sender = GPID_SERV;
+    // grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
+    // INFO("sys_proc receives: %s", buf);
 
     sys_spawn(SYS_SHELL_EXEC_START);
 
     while (1) {
         struct proc_request *req = (void*)buf;
         struct proc_reply *reply = (void*)buf;
+        sender = 0;
         grass->sys_recv(&sender, buf, SYSCALL_MSG_LEN);
 
         switch (req->type) {

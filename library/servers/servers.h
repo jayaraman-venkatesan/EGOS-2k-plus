@@ -6,12 +6,16 @@
 void exit(int status);
 int dir_lookup(int dir_ino, char* name);
 int file_read(int file_ino, int offset, char* block);
+int service_register(char *name);
+int service_discover(char *name);
+int service_destroy(char *name);
 
 enum grass_servers {
     GPID_UNUSED,
     GPID_PROCESS,
     GPID_FILE,
     GPID_DIR,
+    /*GPID_SERV,*/
     GPID_SHELL,
     GPID_USER_START
 };
@@ -72,3 +76,29 @@ struct dir_reply {
     enum dir_status { DIR_OK, DIR_ERROR } status;
     int ino;
 };
+
+/* GPID_SERVICE */
+#define SERV_NAME_SIZE   32
+struct serv_request {
+    enum {
+        SERV_REGISTER,
+        SERV_DESTROY,
+        SERV_DISCOVER,
+    } type;
+    char name[SERV_NAME_SIZE];
+};
+
+struct serv_reply {
+    enum {
+        REG_OK,
+        REG_FAIL,
+        DESTROY_OK,
+        DESTROY_FAIL,
+        SERV_FOUND,
+        SERV_NOTFOUND
+    } status;
+    int pid;
+};
+
+
+
