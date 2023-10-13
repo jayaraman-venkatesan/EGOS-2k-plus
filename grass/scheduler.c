@@ -89,6 +89,15 @@ void proc_yield() {
     /* Call the entry point for newly created process */
     if (curr_status == PROC_READY) {
         proc_set_running(curr_pid);
+
+        /* [lab4-ex3]
+         * TODO: the kernel will switch privilege level here:
+         * - if the curr_pid is a system process, set the privilege level to S-Mode
+         * - if the curr_pid is a user application, set the privilege level to U-Mode
+         */
+
+        /* TODO: your code here */
+
         /* Prepare argc and argv */
         asm("mv a0, %0" ::"r"(APPS_ARG));
         asm("mv a1, %0" ::"r"(APPS_ARG + 4));

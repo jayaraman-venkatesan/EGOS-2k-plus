@@ -45,7 +45,21 @@ void intr_entry(int id) {
 }
 
 void excp_entry(int id) {
-    FATAL("excp_entry: kernel got exception %d", id);
+    /*
+     * [lab4-ex2]
+     * TODO: handling exceptions
+     * - If "id" is for syscalls, handle the system call and return:
+     *   -- you need to capture **all** ecall exceptions
+     *   -- you need to think of which pc the CPU will run after "mret";
+     *      in other word, you need to properly update PCBs so that
+     *      eventually "mepc" will be set to the right instruction.
+     * - If "id" is not for syscalls, then check
+     *   -- if curr_pid is a user application, kill the process
+     *   -- if curr_pid is a system proc, panic the kernel using FATAL
+     */
+
+
+    FATAL("fatal exception (pid=%d) %d", curr_pid, id);
 }
 
 void check_nested_trap() {
@@ -77,6 +91,15 @@ void ctx_entry() {
     /* handle either interrupt or exception */
     int id = trap_cause & 0x3FF;
     (trap_cause & (1 << 31)) ? intr_entry(id) : excp_entry(id);
+
+    /* [lab4-ex3]
+     * TODO: the kernel will switch privilege level here:
+     * - if the curr_pid is a system process, set the privilege level to S-Mode
+     * - if the curr_pid is a user application, set the privilege level to U-Mode
+     */
+
+    /* TODO: your code here */
+
 
     /* Switch back to the user application stack */
     mepc = (int)proc_set[proc_curr_idx].mepc;

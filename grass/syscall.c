@@ -50,10 +50,17 @@ sys_send/recv (syscall.c)
 /* Syscall first half running in user-space */
 static void sys_invoke() {
     struct syscall *sc = (struct syscall*)SYSCALL_ARG;
+
+#ifndef ECALL
     /* set machine-mode software interrupt:
      * MSIP bit of mip to 1 */
     *((int*)0x2000000) = 1;
     while (sc->type != SYS_UNUSED);
+#else
+    /* [lab4-ex1]
+     * TODO: use ecall to trap to kerenl */
+
+#endif
 }
 
 void sys_yield() {
@@ -118,10 +125,13 @@ void proc_syscall() {
 
     int type = sc->type;
     sc->retval = 0;
+
+#ifndef ECALL
     sc->type = SYS_UNUSED;
     /* set machine-mode software interrupt:
      * MSIP bit of mip to 0 */
     *((int*)0x2000000) = 0;
+#endif
 
     switch (type) {
     case SYS_RECV:
