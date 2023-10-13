@@ -115,5 +115,5 @@ void mmu_init() {
     pmp_init();
 
     /* Initialize virtual memory */
-    vm_init();
+    //vm_init();
 }
