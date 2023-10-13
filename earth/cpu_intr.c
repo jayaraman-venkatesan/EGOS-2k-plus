@@ -25,7 +25,7 @@ void trap_entry() {
     asm("csrr %0, mcause" : "=r"(mcause));
 
     if (!trap_handler) {
-        FATAL("trap_entry: trap handler not registered (mcause=%x)", mcause);
+        FATAL("trap_entry: trap handler not registered (mcause=%d)", mcause);
     }
 
     trap_handler(mcause);
