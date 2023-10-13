@@ -1,22 +1,15 @@
-/*
- * (C) 2022, Cornell University
- * All rights reserved.
- */
-
-/* Author: Yunhao Zhang
- * Description: a program corrupting the memory of other processes
- * Students are asked to modify the grass kernel so that this
- * program crashes and terminates without harming other processes.
- */
+/* Description: run supervisor-mode instructions
+ * A user-level app should be killed by the kernel.
+ * Test both before and after the first time being scheduled.
+ * */
 
 #include "app.h"
-#include <string.h>
 
-int main() {
-    memset((void*)(FREE_MEM_END - PAGE_SIZE), 0, PAGE_SIZE);
-    /* If the OS protects memory correctly,
-     * this memset should trigger an exception, killing this application;
-     * Otherwise, the following message will be printed
-     */
-    SUCCESS("Crash2 succeeds in corrupting the memory of other processes");
+int main(int argc, char** argv) {
+    if (argc != 1) {
+        grass->sys_yield();
+    }
+    asm("sfence.vma zero,zero");
+    SUCCESS("Crash2 succeeds in running high-privileged instructions");
 }
+
