@@ -59,7 +59,25 @@ void excp_entry(int id) {
      */
 
 
-    FATAL("fatal exception (pid=%d) %d", curr_pid, id);
+    if(id == 8 || id == 9 || id == 11){
+        //INFO("process %d SYCALL", curr_pid);
+        int pid = curr_pid;
+        proc_syscall();
+
+        unsigned int mepc, ignore;
+        asm("csrr %0, mepc" : "=r"(mepc));
+        proc_set[proc_curr_idx].mepc =  (void *) (mepc+4);
+        return;
+    } else if (curr_pid >= GPID_USER_START) {
+        INFO("process %d killed by exception", curr_pid);
+        proc_set[proc_curr_idx].mepc = (void*) (APPS_ENTRY + 0xC);
+        return;
+
+    } else if (curr_pid < GPID_USER_START) {
+        FATAL("fatal exception (pid=%d) %d", curr_pid, id);
+    }
+
+   
 }
 
 void check_nested_trap() {
