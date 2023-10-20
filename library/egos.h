@@ -103,4 +103,4 @@ typedef unsigned int m_uint32;
 typedef unsigned long long m_uint64;
 
 /* scheduler */
-#define QUANTUM  0x100000
+#define QUANTUM  0x1000000000
