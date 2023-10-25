@@ -1,7 +1,7 @@
 # [lab3-ex2]: TODO: change "NAIVE" to "MLFQ"
 SCHEDULER=MLFQ
 # [lab4]: TODO: change "SOFTTIMER" to "ECALL"
-SYSCALLFUNC=SOFTTIMER
+SYSCALLFUNC=ECALL
 
 RISCV_QEMU = qemu-system-riscv32
 RISCV_CC = riscv64-unknown-elf-gcc

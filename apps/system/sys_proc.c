@@ -48,7 +48,6 @@ int main() {
         switch (req->type) {
         case PROC_SPAWN:
             reply->type = app_spawn(req) < 0 ? CMD_ERROR : CMD_OK;
-
             /* Handling background processes */
             shell_waiting = (req->argv[req->argc - 1][0] != '&');
             if (!shell_waiting && app_pid > 0)

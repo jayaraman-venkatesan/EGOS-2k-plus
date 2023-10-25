@@ -213,18 +213,18 @@ void proc_yield() {
 
         /* TODO: your code here */
 
-          int mstatus;
-    asm("csrr %0, mstatus" : "=r"(mstatus));
-    if(curr_pid >= 5){
-        asm("csrw mstatus, %0" ::"r"((mstatus & ~(3 << 11))));   /* clear MPP */
-                                         
-    } else {
+        int mstatus;
+        asm("csrr %0, mstatus" : "=r"(mstatus));
+        if(curr_pid >= 5){
+            asm("csrw mstatus, %0" ::"r"((mstatus & ~(3 << 11))));   /* clear MPP */
+                                        
+        } else {
          
-    /* Enter supervisor mode after mret */
+        /* Enter supervisor mode after mret */
         
         asm("csrw mstatus, %0" ::"r"((mstatus & ~(3 << 11))   /* clear MPP */
-                                          | (1 << 11) )); /* set MPP to S */
-    }
+                                            | (1 << 11) )); /* set MPP to S */
+        }
 
         /* Prepare argc and argv */
         asm("mv a0, %0" ::"r"(APPS_ARG));
@@ -518,11 +518,6 @@ void proc_on_arrive(int pid) {
     proc_set[pid2idx(pid)].response_time = 0;
     proc_set[pid2idx(pid)].yeilds=0;
     proc_set[pid2idx(pid)].cpu_time=0;
-
-  
-
-
-
 
 #ifdef MLFQ
   static int first_time = 1;

@@ -106,6 +106,26 @@ void pmp_init() {
     /* Setup PMP NAPOT region 0x80000000 - 0x80400000 as r/w/- */
 
 
+    asm ("csrw pmpaddr0, %0" :: "r" (0x20000000 >> 2));
+
+    //using : ((base >> 2) + (size >> 3) - 1)
+
+    // // NAPOT  0x20400000 - 0x20800000 access r/x
+    asm ("csrw pmpaddr1, %0" :: "r" ((0x20400000 >> 2) + (0x400000 >> 3)  - 1));
+    //asm("csrw pmpcfg0, %0" :: "r" (0x1C0F));
+ 
+
+    // // NAPOT   0x20800000 - 0x20C00000 access r
+    asm ("csrw pmpaddr2, %0" :: "r"((0x20800000 >> 2) + (0x400000 >> 3)  - 1));
+
+
+    // // NAPOT   0x80000000 - 0x80400000 access r/w
+    asm ("csrw pmpaddr3, %0" :: "r" ((0x80000000 >> 2) + (0x400000 >> 3)  - 1));
+    
+    asm("csrw pmpcfg0, %0" :: "r" (0x1B191D0F));
+
+    
+
 }
 
 /* defined in cpu_vm.c */

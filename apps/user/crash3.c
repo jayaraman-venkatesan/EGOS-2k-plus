@@ -12,7 +12,7 @@ void tamper_proc() {
      * TODO: uncomment the following line
      * and answer the questions in slack/lab4.txt
      */
-    // memset((void*)FREE_MEM_START, 0, PAGE_SIZE);
+    memset((void*)FREE_MEM_START, 0, PAGE_SIZE);
 
     SUCCESS("Crash3 succeeds in corrupting the memory of other processes");
 }

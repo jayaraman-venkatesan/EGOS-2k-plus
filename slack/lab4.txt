@@ -1,6 +1,6 @@
-Name:
-NUID:
-GitHub id:
+Name: Jayaraman Venkatesan
+NUID: 002783658
+GitHub id: jayaraman1998
 slack hours used: 0
 remaining slack hours: 120
 
@@ -12,7 +12,18 @@ Q: After uncommenting the line in apps/user/crash3.c,
    And why?
    (Explain in fewer than 3 sentences)
 
-A: // write your answers here
+A: 
+OUTPUT :
+➜ /home/cs6640 crash3 proc
+[SUCCESS] Crash3 succeeds in corrupting the memory of other processes
+[FATAL] fatal exception (pid=1) 2
+
+REASON :
+The second memset modified the DTIM free memory start which is being used in mmu_switch() to temprorily store while 
+doing kernel switch. As instructions and data are 1s and 0s (from lab1) it modifies the code gives exception 2 (ILLEGAL INSTRUCTION)
+
+
+
 
 
 Q2: Can you prevent `crash3 proc` using PMP?
@@ -20,6 +31,14 @@ Q2: Can you prevent `crash3 proc` using PMP?
    (Explain in fewer than 3 sentences)
 
 A: // write your answers here
+We cannot stop it
+REASON : 
+The crash proc is modifying the DTIM Free mem space in first memset and we cannot set it to read only as 
+we need process to use them for multiple purposes as it is needed during mmu_switch
+
+
+
+
 
 
 ---

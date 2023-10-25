@@ -60,16 +60,14 @@ void excp_entry(int id) {
 
 
     if(id == 8 || id == 9 || id == 11){
-        //INFO("process %d SYCALL", curr_pid);
+      
         int pid = curr_pid;
+
+        proc_set[proc_curr_idx].mepc += 4 ;
         
         proc_syscall();
-
-        unsigned int mepc;
-        asm("csrr %0, mepc" : "=r"(mepc));
+      
        
-        proc_set[proc_curr_idx].mepc = (void *)mepc + 4 ;
-        //asm("csrw mepc, %0" ::"r"(mepc+4));
         return;
     } else if (curr_pid >= GPID_USER_START) {
         INFO("process %d killed by exception %d", curr_pid,id);

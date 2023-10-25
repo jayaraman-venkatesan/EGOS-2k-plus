@@ -70,16 +70,13 @@ void sys_yield() {
 }
 
 int sys_send(int receiver, char* msg, int size) {
-    //printf("first time3\n");
     if (size > SYSCALL_MSG_LEN) return -1;
 
     struct syscall *sc = (struct syscall*)SYSCALL_ARG;
     sc->type = SYS_SEND;
     sc->msg.receiver = receiver;
     memcpy(sc->msg.content, msg, size); 
-    //printf("first time4\n");
     sys_invoke();
-    //printf("first time5\n");
     return sc->retval;
 }
 
