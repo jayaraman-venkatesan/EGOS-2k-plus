@@ -1,7 +1,7 @@
 Name: Jayaraman Venkatesan
 NUID: 002783658
 GitHub id: jayaraman1998
-slack hours used: 1.50
+slack hours used: 25.50
 remaining slack hours: 120
 
 ---
