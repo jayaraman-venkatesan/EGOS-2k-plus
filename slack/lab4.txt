@@ -1,7 +1,7 @@
 Name: Jayaraman Venkatesan
 NUID: 002783658
 GitHub id: jayaraman1998
-slack hours used: 0
+slack hours used: 1.50
 remaining slack hours: 120
 
 ---
@@ -46,6 +46,8 @@ Collaborators (who you talked to about the lab, what you talked about):
 
 
 Source material that you consulted:
+
+Official SiFi doc : https://cdn2.hubspot.net/hubfs/3020607/SiFive-RISCVCoreIP.pdf?t=1512606290763
 
 
 Other acknowledgments:
