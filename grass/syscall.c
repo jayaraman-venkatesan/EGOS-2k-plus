@@ -166,6 +166,7 @@ void msgcpy(int src_pid, int dst_pid, void* src_addr, void* dst_addr, int size) 
     void *src_pa = earth->mmu_translate(src_pid,src_addr);
     void *dest_pa = earth->mmu_translate(dst_pid,dst_addr);
     memcpy(dest_pa,src_pa,size);
+
 #else
     char buf[size];
     /* Copy message from src to a temp buffer*/

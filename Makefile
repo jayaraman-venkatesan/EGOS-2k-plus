@@ -2,10 +2,12 @@
 SCHEDULER=MLFQ
 # [lab4]: TODO: change "SOFTTIMER" to "ECALL"
 
+
 SYSCALLFUNC=ECALL
 
 # [lab5]: TODO: change  "VMOFF" to "VMON"
 IFVM=VMON
+
 
 
 RISCV_QEMU = qemu-system-riscv32

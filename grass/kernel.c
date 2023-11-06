@@ -60,6 +60,7 @@ void excp_entry(int id) {
 
 
 
+
     if(id == 8 || id == 9 || id == 11){
       
         int pid = curr_pid;
@@ -78,12 +79,6 @@ void excp_entry(int id) {
     } else if (curr_pid < GPID_USER_START) {
         FATAL("fatal exception (pid=%d) %d", curr_pid, id);
     }
-
-   
-
-    register m_uint32 mtval;
-    asm("csrr %0, mtval" : "=r"(mtval));
-    FATAL("fatal exception (pid=%d) %d, mtval=0x%x", curr_pid, id, mtval);
 
 }
 

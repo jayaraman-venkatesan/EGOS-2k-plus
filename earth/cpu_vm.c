@@ -143,6 +143,7 @@ void build_page_table(int pid){
         setup_identity_region(pid,0x80002000,2);
 
     }
+
 }
 
 
@@ -156,6 +157,7 @@ int page_table_map(int pid, void *va, void *pa) {
 
 
     m_uint32 *root = pid_to_pagetable_base[pid];
+
 
     /* Implement va-pa mapping:  
      * (1) if the page table for pid does not exist, build the page table.
@@ -191,6 +193,7 @@ int page_table_map(int pid, void *va, void *pa) {
      */
 
     /* TODO: your code here */
+
     if(root == NULL){
 
         void *pagetable_root = pmalloc(1);
@@ -211,6 +214,7 @@ int page_table_map(int pid, void *va, void *pa) {
             *l2_pte_ptr = ppn | FLAG_VALID_RWX ;
         } 
     //}
+
 
 
 
@@ -239,6 +243,7 @@ int page_table_switch(int pid) {
     asm("csrw satp, %0" ::"r"(((m_uint32)pt_root >> 12) | (1 << 31)));    
    
 
+
     /* wait flushing TLB entries */
     fence();
 }
@@ -252,6 +257,7 @@ int page_table_switch(int pid) {
 void *page_table_translate(int pid, void *va) {
 
     /* TODO: your code here */
+
 
 
 
@@ -372,6 +378,7 @@ int page_table_free(int pid) {
     fence();
 
     return 0;
+
 }
 
 
@@ -410,6 +417,7 @@ void setup_identity_region(int pid, m_uint32 addr, int npages) {
             l2_pa[vpn0 + i] = ((addr + i * PAGE_SIZE) >> 2) | FLAG_VALID_RWX; 
         }
         
+
     }
 }
 
