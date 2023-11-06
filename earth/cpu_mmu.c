@@ -140,8 +140,10 @@ void mmu_init() {
     earth->mmu_switch = soft_tlb_switch;
 
     /* Initialize memory protection */
+#ifndef VMON
     pmp_init();
-
+#else
     /* Initialize virtual memory */
-    //vm_init();
+    vm_init();
+#endif
 }

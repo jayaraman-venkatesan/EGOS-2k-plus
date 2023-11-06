@@ -43,6 +43,7 @@ int main() {
     /* Load and enter the first kernel process sys_proc */
     INFO("Load kernel process #%d: sys_proc", GPID_PROCESS);
     elf_load(GPID_PROCESS, sys_proc_read, 0, 0);
+    SUCCESS("Successfully load process #%d: sys_proc", GPID_PROCESS);
 
     /* run the first process sys_proc*/
     earth->mmu_switch(GPID_PROCESS);

@@ -120,9 +120,15 @@ void sys_sleep(int time_units) {
 /* Syscall second half running in kernel-space */
 static void proc_send(struct syscall *sc);
 static void proc_recv(struct syscall *sc);
+void msgcpy(int src_pid, int dst_pid, void* src_addr, void* dst_addr, int size);
 
 void proc_syscall() {
     struct syscall *sc = (struct syscall*)SYSCALL_ARG;
+
+#ifdef VMON
+    // copy syscall args from process address space to kernel space
+    msgcpy(curr_pid, 0/*kernel*/, sc, sc, sizeof(struct syscall));
+#endif
 
     int type = sc->type;
     sc->retval = 0;
@@ -152,6 +158,12 @@ void proc_syscall() {
 void msgcpy(int src_pid, int dst_pid, void* src_addr, void* dst_addr, int size) {
     ASSERTX(size > 0 && size < PAGE_SIZE);
 
+#if VMON
+    /* [lab5-ex3]
+     * TODO: copy the message from src_pid to dst_pid.
+     * hint: earth->mmu_translate() will be useful*/
+
+#else
     char buf[size];
     /* Copy message from src to a temp buffer*/
     earth->mmu_switch(src_pid);
@@ -159,11 +171,17 @@ void msgcpy(int src_pid, int dst_pid, void* src_addr, void* dst_addr, int size) 
     /* Copy message from the temp buffer to dst*/
     earth->mmu_switch(dst_pid);
     memcpy(dst_addr, buf, size);
+#endif
 }
 
 
 static void proc_send(struct syscall *sc) {
     sc->msg.sender = curr_pid;
+#ifdef VMON
+    // FIXME: UGLY implementation
+    struct syscall *u_sc = earth->mmu_translate(curr_pid,sc);
+    u_sc->msg.sender = curr_pid; // set the sender in the user address space
+#endif
 
     /* Find the receiver */
     int receiver = sc->msg.receiver;
@@ -189,7 +207,6 @@ static void proc_send(struct syscall *sc) {
     }
 
     proc_yield();
-    return;
 }
 
 static void proc_recv(struct syscall *sc) {

@@ -3,13 +3,6 @@
 #include "egos.h"
 #include "string.h"
 
-/* temporary helper functions from cpu_mmu.c
- * should be removed after PTs are ready
- */
-int soft_tlb_map(int pid, void *dst, void *src);
-int soft_tlb_switch(int pid);
-int soft_tlb_free(int pid);
-
 /* Page Table Translation
  *
  * The code below creates an identity mapping using RISC-V Sv32;
@@ -25,38 +18,163 @@ void  pfree(void *paddr);
 
 
 #define MAX_ROOT_PAGE_TABLES MAX_NPROCESS
+#define USER_PID_START 5  // FIXME: move to egos.h
 
 /* a mapping from pid to page table root */
 static m_uint32* pid_to_pagetable_base[MAX_ROOT_PAGE_TABLES];
 
-m_uint32* walk(int pid, void* va, int alloc) {
-    /* TODO: your code here */
-
-}
-
-
-int page_table_map(int pid, void *va, void *pa) {
-    if (pid >= MAX_ROOT_PAGE_TABLES) FATAL("page_table_map: pid too large");
-    soft_tlb_map(pid, va, pa);
-}
-
-int page_table_free(int pid) {
-    soft_tlb_free(pid);
-}
-
-
-void *page_table_translate(int pid, void *va) {
-}
-
-int page_table_switch(int pid) {
-    /* ensure all updates to page table are settled */
+void fence() {
     asm("sfence.vma zero,zero");
+}
 
-    soft_tlb_switch(pid);
+
+/* [lab5-ex1]:
+ * this function walks the page table:
+ *   it translates virtual address "va" via page table "root",
+ *   and returns the **address** of the PTE pointing to "va".
+ * if alloc is non-zero,
+ *   allocate the pages when necessary.
+ * if alloc is zero,
+ *   FATAL when cannot find the page.
+ *
+ * hints:
+ *  - the return value is a PTE pointer.
+ *    With the pointer, it is easy to change the permissions on PTE.
+ *  - use pmalloc() to allocate pages
+ */
+m_uint32* walk(m_uint32* root, void* va, int alloc) {
+    /* TODO: your code here */
+    m_uint32 *l2_pte_ptr = NULL;
+
+
+
+
+
+    return l2_pte_ptr;
+}
+
+
+/* [lab5-ex1]
+ * establish the mapping between the "va" to the "pa" for process "pid"
+ */
+int page_table_map(int pid, void *va, void *pa) {
+    ASSERT(pid >= 0 && pid <= MAX_NPROCESS, "pid is unexpected");
+    ASSERT( ((m_uint32)va % PAGE_SIZE == 0) &&
+            ((m_uint32)pa % PAGE_SIZE == 0), "page is not aligned");
+
+
+    m_uint32 *root = pid_to_pagetable_base[pid];
+
+    /* Implement va-pa mapping:
+     * (1) if the page table for pid does not exist, build the page table.
+     *     (a) if the process is a system process (pid < USER_PID_START)
+     *       you need to map the well-known memory to system process address space.
+     *       Here are the well-known memory regions:
+     *           | start address | #pages| explanation
+     *           +---------------+-------+------------------
+     *           |  0x02000000   | 16    | CLINT
+     *           |  0x08000000   | 512   | earth data, grass code+data
+     *           |  0x10013000   | 1     | UART0
+     *           |  0x20400000   | 256   | earth code
+     *           |  0x20800000   | 1024  | disk data
+     *           |  0x80000000   | 1024  | DTIM memory
+     *       hint: you should use "setup_identity_region()"
+     *     (b) if the process is a user process (pid >= USER_PID_START)
+     *       you need to map the following well-known memory to the user address space.
+     *           | start address | #pages| explanation
+     *           +---------------+-------+------------------
+     *           |  0x08000000   | 512   | earth data, grass code+data
+     *           |  0x10013000   | 1     | UART0
+     *           |  0x20400000   | 256   | earth code
+     *           |  0x80002000   | 2     | grass interface
+     *           |               |       | + earth/grass stack
+     *           |               |       | + earth interface
+     *
+     * (2) if the page tables exists,
+     *   use walk() to get the PTE pointer,
+     *   and update PTE accordingly.
+     *   note:
+     *   system processes run in supervisor mode; others run in user mode.
+     *   You should update their PTE permission bits accordingly.
+     */
+
+    /* TODO: your code here */
+    FATAL("page_table_map is not implemented.");
+
+
+
+
+
 
     /* wait flushing TLB entries */
-    asm("sfence.vma zero,zero");
+   fence();
 }
+
+
+/* [lab5-ex2]
+ * switching address space to process "pid"
+ * hints:
+ * - you will use "asm" to manipulate CSR "satp"
+ */
+int page_table_switch(int pid) {
+    ASSERT(pid >= 0 && pid <= MAX_NPROCESS, "pid is unexpected");
+    /* ensure all updates to page table are settled */
+    fence();
+
+    /* TODO: your code here */
+    FATAL("page_table_switch is not implemented.");
+
+
+    /* wait flushing TLB entries */
+    fence();
+}
+
+
+
+/* [lab5-ex3]
+ * this function translate the virtual address "va" to its physical address,
+ * and returns the physical address.
+ */
+void *page_table_translate(int pid, void *va) {
+
+    /* TODO: your code here */
+    FATAL("page_table_translate is not implemented.");
+
+    return NULL;
+}
+
+
+/* [lab5-ex4]
+ * free page table and all relevant pages
+ */
+int page_table_free(int pid) {
+    ASSERT(pid >= 0 && pid <= MAX_NPROCESS, "pid is unexpected");
+    /* To free the page table:
+     * (1) free all pages pointed by the page table root
+     *     by calling pfree()
+     *     (a) loop L1 pte
+     *       (b) loop L2 pte
+     *         (c) free data page
+     *       (b) free L2 page table page
+     *     (a) free L1 page table page (pointed by root)
+     * (2) set pid_to_pagetable_base[pid] to 0
+     *
+     * Note:
+     * - use pfree() to free pages
+     * - take care of the well-known pages (don't free the pages that are not
+     *   allocated by your code)
+     */
+
+    FATAL("page_table_free is not implemented.");
+    /* TODO: your code here */
+
+
+
+
+    /* wait flushing TLB entries */
+    fence();
+}
+
 
 /* set up virtual memory mapping for process pid,
  * by mapping
@@ -83,6 +201,9 @@ void setup_identity_region(int pid, m_uint32 addr, int npages) {
     /* Setup the PTE in the l2 page table page */
     int vpn0 = (addr >> 12) & 0x3FF;
     for (int i = 0; i < npages; i++) {
+        ASSERT(l2_pa[vpn0 + i] == 0, "non-empty l2 PTE");
+        /* [lab5-ex3]
+         * TODO: for user processes, set PTE_U */
         l2_pa[vpn0 + i] = ((addr + i * PAGE_SIZE) >> 2) | FLAG_VALID_RWX;
     }
 }
@@ -103,6 +224,7 @@ void kernel_identity_mapping() {
     for (int i = 0; i < 8; i++) {                 /* ITIM memory is 32MB on QEMU */
         setup_identity_region(0, 0x08000000 + i * 0x00400000, 1024);
     }
+    fence();
 }
 
 int vm_init() {
