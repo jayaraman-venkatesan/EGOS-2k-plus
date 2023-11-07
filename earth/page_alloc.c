@@ -8,7 +8,9 @@
 /* manage memory pages of:
  *    [FREE_MEM_START, FREE_MEM_END)
  * */
-#define NPAGES ((FREE_MEM_END - FREE_MEM_START) / PAGE_SIZE)
+#define REMOVED_PAGES 900
+/* original NPAGES: 1024-4=1020 */
+#define NPAGES (((FREE_MEM_END - FREE_MEM_START) / PAGE_SIZE) - REMOVED_PAGES)
 
 #define ROUNDUP(x,y) (x%y==0? x/y : (x+y-1)/y)
 
