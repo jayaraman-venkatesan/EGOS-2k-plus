@@ -251,7 +251,7 @@ int page_table_switch(int pid) {
 
 
 /* [lab5-ex3]
- * this function translate the virtual address "va" to its physical address,
+ * this function translates the virtual address "va" to its physical address,
  * and returns the physical address.
  */
 void *page_table_translate(int pid, void *va) {
