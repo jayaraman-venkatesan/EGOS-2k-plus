@@ -5,7 +5,7 @@ SCHEDULER=MLFQ
 SYSCALLFUNC=ECALL
 
 # [lab5]: TODO: change  "VMOFF" to "VMON"
-IFVM=VMOFF
+IFVM=VMON
 
 
 RISCV_QEMU = qemu-system-riscv32
