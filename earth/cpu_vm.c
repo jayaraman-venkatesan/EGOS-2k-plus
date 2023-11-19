@@ -261,12 +261,26 @@ int page_table_free(int pid) {
                     m_uint32 data_page = (l2_pte & ~(0x3ff)) << 2;
 
                     // Check if it's a "well-known" mapping before freeing
-                    if (check_user_well_known(data_page) == 0) {
+                    if(pid < USER_PID_START){
+
+                        if (check_system_well_known(data_page) == 0) {
                         // Free the data page
                   
-                        pfree((void*)data_page);
+                            pfree((void*)data_page);
                         
+                        }
+
+                    } else {
+
+                        if (check_user_well_known(data_page) == 0) {
+                        // Free the data page
+                  
+                            pfree((void*)data_page);
+                        
+                        }
+
                     }
+                    
                 }
             }
 
@@ -379,10 +393,37 @@ int check_user_well_known(m_uint32 addr){
     return 0;
 }
 
+
+int check_system_well_known(m_uint32 addr){
+    if(addr >= 0x02000000 && addr < 0x02000000 + (16 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x08000000 && addr < 0x08000000 + (512 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x10013000 && addr < 0x10013000 + (1 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x20400000 && addr < 0x20400000 + (256 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x20800000 && addr < 0x20800000 + (1024 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x80000000 && addr < 0x80000000 + (1024 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    return 0;
+}
+
+
 void build_page_table(int pid){
-
-
-    
     // Map system process
     if(pid < USER_PID_START){
         setup_identity_region(pid,0x02000000,16);
@@ -402,30 +443,5 @@ void build_page_table(int pid){
         setup_identity_region(pid,0x20400000,256);
         setup_identity_region(pid,0x80002000,2);
 
-    }
-}
-
-
-int is_well_known_mapping(int pid, int vpn1, int vpn0) {
-    // Check if the VPN1 and VPN0 values correspond to well-known mappings
-    // Adjust the conditions based on the actual well-known mappings in your system
-
-    if (pid < USER_PID_START) {
-        // System process mappings
-        
-    } else {
-        // User process mappings
-        switch (vpn1) {
-            case 0x08: // Earth data, grass code+data VPN1
-                return vpn0 >= 0 && vpn0 < 512; // Earth data, grass code+data mapping range
-            case 0x10: // UART0 VPN1
-                return vpn0 == 0; // UART0 mapping
-            case 0x20: // Earth code VPN1
-                return vpn0 >= 0 && vpn0 < 256; // Earth code mapping range
-            case 0x80: // Grass interface VPN1
-                return vpn0 >= 0 && vpn0 < 2; // Grass interface mapping range
-            default:
-                return 0; // Not a well-known mapping
-        }
     }
 }
