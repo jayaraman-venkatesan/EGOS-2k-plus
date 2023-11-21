@@ -67,9 +67,82 @@ m_uint32* walk(m_uint32* root, void* va, int alloc) {
         }
     }
 
-    m_uint32* l2_addr =   (root[vpn1] & ~(0x3ff)) >> 10 << 12 ;
+    m_uint32* l2_addr =   (m_uint32 *)((root[vpn1] & ~(0x3ff)) >> 10 << 12) ;
 
     return &l2_addr[vpn0];
+}
+
+
+int check_user_well_known(m_uint32 addr){
+    if(addr >= 0x08000000 && addr < 0x08000000 + (512 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x10013000 && addr < 0x10013000 + (1 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x20400000 && addr < 0x20400000 + (256 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x80002000 && addr < 0x80002000 + (2 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int check_system_well_known(m_uint32 addr){
+    if(addr >= 0x02000000 && addr < 0x02000000 + (16 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x08000000 && addr < 0x08000000 + (512 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x10013000 && addr < 0x10013000 + (1 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x20400000 && addr < 0x20400000 + (256 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x20800000 && addr < 0x20800000 + (1024 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    if(addr >= 0x80000000 && addr < 0x80000000 + (1024 * PAGE_SIZE) ){
+        return 1;
+    }
+
+    return 0;
+}
+
+void build_page_table(int pid){
+    // Map system process
+    if(pid < USER_PID_START){
+        setup_identity_region(pid,0x02000000,16);
+        setup_identity_region(pid,0x08000000,512);
+
+        setup_identity_region(pid,0x10013000,1);
+        setup_identity_region(pid,0x20400000,256);
+
+        setup_identity_region(pid,0x20800000,1024);
+        setup_identity_region(pid,0x80000000,1024);
+
+    } else if(pid >= USER_PID_START){
+
+        setup_identity_region(pid,0x08000000,512);
+        setup_identity_region(pid,0x10013000,1);
+
+        setup_identity_region(pid,0x20400000,256);
+        setup_identity_region(pid,0x80002000,2);
+
+    }
 }
 
 
@@ -195,7 +268,7 @@ void *page_table_translate(int pid, void *va) {
 
     ASSERT(l1_pte & FLAG_NEXT_LEVEL !=0 , "Translate : L1 PTE INVALID");
 
-    m_uint32 *l2_page = (l1_pte & ~(0x3ff)) >> 10 << 12;
+    m_uint32 *l2_page = (m_uint32 *)((l1_pte & ~(0x3ff)) >> 10 << 12);
 
     m_uint32 l2_pte = l2_page[vpn0];
 
@@ -207,7 +280,7 @@ void *page_table_translate(int pid, void *va) {
 
     //return data_page;
 
-    return pa;
+    return (void *)pa;
 }
 
 
@@ -250,7 +323,7 @@ int page_table_free(int pid) {
 
         if (l1_pte & FLAG_NEXT_LEVEL) {
             // L2 page table is present, get its address
-            m_uint32* l2_page = (l1_pte & ~(0x3ff)) >> 10 << 12;
+            m_uint32* l2_page = (m_uint32 *)((l1_pte & ~(0x3ff)) >> 10 << 12);
 
             // Iterate through L2 PTEs
             for (int vpn0 = 0; vpn0 < 1024; vpn0++) {
@@ -373,75 +446,6 @@ int vm_init() {
     earth->mmu_translate = page_table_translate;
 }
 
-int check_user_well_known(m_uint32 addr){
-    if(addr >= 0x08000000 && addr < 0x08000000 + (512 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x10013000 && addr < 0x10013000 + (1 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x20400000 && addr < 0x20400000 + (256 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x80002000 && addr < 0x80002000 + (2 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    return 0;
-}
 
 
-int check_system_well_known(m_uint32 addr){
-    if(addr >= 0x02000000 && addr < 0x02000000 + (16 * PAGE_SIZE) ){
-        return 1;
-    }
 
-    if(addr >= 0x08000000 && addr < 0x08000000 + (512 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x10013000 && addr < 0x10013000 + (1 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x20400000 && addr < 0x20400000 + (256 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x20800000 && addr < 0x20800000 + (1024 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    if(addr >= 0x80000000 && addr < 0x80000000 + (1024 * PAGE_SIZE) ){
-        return 1;
-    }
-
-    return 0;
-}
-
-
-void build_page_table(int pid){
-    // Map system process
-    if(pid < USER_PID_START){
-        setup_identity_region(pid,0x02000000,16);
-        setup_identity_region(pid,0x08000000,512);
-
-        setup_identity_region(pid,0x10013000,1);
-        setup_identity_region(pid,0x20400000,256);
-
-        setup_identity_region(pid,0x20800000,1024);
-        setup_identity_region(pid,0x80000000,1024);
-
-    } else if(pid >= USER_PID_START){
-
-        setup_identity_region(pid,0x08000000,512);
-        setup_identity_region(pid,0x10013000,1);
-
-        setup_identity_region(pid,0x20400000,256);
-        setup_identity_region(pid,0x80002000,2);
-
-    }
-}

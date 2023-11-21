@@ -443,9 +443,8 @@ static int mlfq() {
                while(return_pid == -1){
                  return_pid = update_sleeping();
                }
-               return return_pid;
+               //return return_pid;
             }
-            return 0;
         }
     } 
 
@@ -466,7 +465,11 @@ static int mlfq() {
        
     }
 
-    return return_pid;
+    if(return_pid == -1){
+        return 0;
+    } else {
+        return return_pid;
+    }
 
     
     
