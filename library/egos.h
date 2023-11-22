@@ -15,8 +15,8 @@ struct earth {
     void* (*mmu_translate)(int pid, void *va);
 
     /* Devices interface */
-    int (*disk_read)(int block_no, int nblocks, char* dst);
-    int (*disk_write)(int block_no, int nblocks, char* src);
+    int (*disk_read)(int block_no, int nblocks, void* dst);
+    int (*disk_write)(int block_no, int nblocks, void* src);
 
     int (*tty_intr)();
     int (*tty_read)(char* buf, int len);

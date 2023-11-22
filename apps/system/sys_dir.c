@@ -11,11 +11,12 @@
 #include "app.h"
 #include <string.h>
 #include <stdlib.h>
+#include "fs.h"
 
-/* To understand directory management, read tools/mkfs.c */
+/* This is querying the initial readonly fs*/
 int dir_do_lookup(int dir_ino, char* name) {
     char buf[BLOCK_SIZE];
-    file_read(dir_ino, 0, buf);
+    file_read(dir_ino, 0, BLOCK_SIZE, buf);
 
     for (int i = 0, namelen = strlen(name); i < strlen(buf) - namelen; i++)
         if (!strncmp(name, buf + i, namelen) &&
@@ -43,7 +44,14 @@ int main() {
 
         switch (req->type) {
         case DIR_LOOKUP:
-            reply->ino = dir_do_lookup(req->ino, req->name);
+            if (req->ino < FS_ROOT_INODE) {
+                reply->ino = dir_do_lookup(req->ino, req->name);
+            } else {
+                int ret = fs_dir_lookup(req->ino, req->name);
+                // this is a hack:
+                // in rwfs, inode=6640 points to the parent of the mount point
+                reply->ino = (ret == 6640) ? 2 /*/home/cs6640*/ : ret;
+            }
             reply->status = reply->ino == -1? DIR_ERROR : DIR_OK;
             grass->sys_send(sender, (void*)reply, sizeof(*reply));
             break;

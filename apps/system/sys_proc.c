@@ -77,7 +77,7 @@ int main() {
     }
 }
 
-static int app_read(int off, char* dst) { file_read(app_ino, off, dst); }
+static int app_read(int off, char* dst) { file_read(app_ino, off, BLOCK_SIZE, dst); }
 
 static int app_spawn(struct proc_request *req) {
     int bin_ino = dir_lookup(0, "bin/");

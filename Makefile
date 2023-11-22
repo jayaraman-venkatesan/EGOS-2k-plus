@@ -6,8 +6,12 @@ SCHEDULER=MLFQ
 SYSCALLFUNC=ECALL
 
 # [lab5]: TODO: change  "VMOFF" to "VMON"
+
 IFVM=VMON
 
+
+# [lab6]: TODO: change  "SDOFF" to "SDON"
+IFSD=SDOFF
 
 
 RISCV_QEMU = qemu-system-riscv32
@@ -16,8 +20,8 @@ OBJDUMP = riscv64-unknown-elf-objdump
 OBJCOPY = riscv64-unknown-elf-objcopy
 
 LIB_HEADERS = Makefile library/*.h library/*/*.h
-EARTH_SRCS = earth/earth.S earth/*.c library/elf/*.c library/libc/*.c
-EARTH_HEADERS = earth/earth.lds $(LIB_HEADERS)
+EARTH_SRCS = earth/earth.S earth/*.c earth/sd/*.c library/elf/*.c library/libc/*.c
+EARTH_HEADERS = earth/earth.lds earth/sd/*.h $(LIB_HEADERS)
 GRASS_SRCS = grass/grass.S grass/context.S grass/*.c library/elf/*.c library/libc/*.c
 GRASS_HEADERS = grass/grass.lds grass/*.h $(LIB_HEADERS)
 APPS_SRCS = apps/app.S library/*/*.c grass/context.S
@@ -32,7 +36,7 @@ INCLUDE = -Ilibrary -Ilibrary/elf -Ilibrary/libc -Ilibrary/file -Ilibrary/server
 QEMU_FLAGS = -bios none -readconfig $(QEMU)/sifive-e31.cfg -kernel $(QEMU)/qemu.elf -nographic
 VERBOSE_LINKER = -Xlinker --verbose
 
-COMMON = $(CFLAGS) $(LDFLAGS) $(INCLUDE) -D CPU_CLOCK_RATE=65000000 -D$(SCHEDULER) -D$(SYSCALLFUNC) -D$(IFVM)
+COMMON = $(CFLAGS) $(LDFLAGS) $(INCLUDE) -D CPU_CLOCK_RATE=65000000 -D$(SCHEDULER) -D$(SYSCALLFUNC) -D$(IFVM) -D$(IFSD)
 
 APPS_LD = -Tapps/app.lds -lc -lgcc
 GRASS_LD = -Tgrass/grass.lds -lc -lgcc
