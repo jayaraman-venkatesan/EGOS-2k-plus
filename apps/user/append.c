@@ -21,7 +21,6 @@ int main(int argc, char** argv) {
     /* Read and print the first block of the file */
     if (strlen(argv[2]) > 0) {
         int fsz = file_size(file_ino);
-        printf("file size = %d\n", fsz);
         int ret = file_write(file_ino, fsz, strlen(argv[2]), argv[2]);
         if (ret != 0) {
             INFO("Error: write to %s failed", argv[1]);
