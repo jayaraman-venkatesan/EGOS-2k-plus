@@ -33,7 +33,7 @@ int block_write(int block_no, void* src) {
 /* block allocate and free */
 int alloc_block() {
     int ret;
-    for (int i=0; i<fs.total_blks; i++) {
+    for (int i=11; i<fs.total_blks; i++) {
         if (!bit_test(fs.bitmap, i)) {
             bit_set(fs.bitmap, i);
             return i;

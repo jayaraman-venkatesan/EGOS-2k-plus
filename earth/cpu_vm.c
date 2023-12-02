@@ -131,6 +131,8 @@ void build_page_table(int pid){
         setup_identity_region(pid,0x10013000,1);
         setup_identity_region(pid,0x20400000,256);
 
+        setup_identity_region(pid, 0x10024000, 1);  
+
         setup_identity_region(pid,0x20800000,1024);
         setup_identity_region(pid,0x80000000,1024);
 
@@ -396,13 +398,20 @@ void setup_identity_region(int pid, m_uint32 addr, int npages) {
     ASSERT(root != NULL, "pagetable root is NULL");
 
     /* Allocate the L2 page table page */
-    m_uint32* l2_pa = pmalloc(1);
-    memset(l2_pa, 0, PAGE_SIZE);
+    // m_uint32* l2_pa = pmalloc(1);
+    // memset(l2_pa, 0, PAGE_SIZE);
 
     /* Setup the entry in the root page table */
+    m_uint32* l2_pa;
     int vpn1 = addr >> 22;
-    m_uint32 ppn = ((m_uint32)l2_pa >> 12);
-    root[vpn1] =  (ppn << 10) | FLAG_NEXT_LEVEL;
+    if (root[vpn1] & FLAG_NEXT_LEVEL) { // l2 PT page exists
+        l2_pa = (m_uint32*)  ((root[vpn1] >> 10) << 12);
+    } else {
+        /* Allocate the L2 page table page */
+        l2_pa = pmalloc(1);
+        m_uint32 ppn = ((m_uint32)l2_pa >> 12);
+        root[vpn1] =  (ppn << 10) | FLAG_NEXT_LEVEL;
+    }
 
     /* Setup the PTE in the l2 page table page */
     int vpn0 = (addr >> 12) & 0x3FF;
@@ -430,9 +439,11 @@ void kernel_identity_mapping() {
     /* Allocate the leaf page tables */
     setup_identity_region(0, 0x02000000, 16);   /* CLINT */
     setup_identity_region(0, 0x10013000, 1);    /* UART0 */
+    setup_identity_region(0, 0x10024000, 1);    /* SDCARD */
     setup_identity_region(0, 0x20400000, 1024); /* boot ROM */
     setup_identity_region(0, 0x20800000, 1024); /* disk image */
     setup_identity_region(0, 0x80000000, 1024); /* DTIM memory */
+    
 
     for (int i = 0; i < 8; i++) {                 /* ITIM memory is 32MB on QEMU */
         setup_identity_region(0, 0x08000000 + i * 0x00400000, 1024);
