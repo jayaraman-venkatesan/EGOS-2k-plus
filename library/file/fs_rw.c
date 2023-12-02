@@ -43,10 +43,10 @@ void fs_init(m_uint32 super_blk_id) {
     if (superblock.magic != 0x6640) {
         FATAL("Magic number mismatch. Invalid file system.");
     } else {
-       //fs.total_blks = superblock.disk_size;
+       
+        fs.total_blks = superblock.disk_size;
 
-       //fs.total_blks = superblock.disk_size;
-       fs.total_blks = superblock.disk_size;
+        block_read(1,fs.bitmap);
 
         fs.avail_blks = 0;
         int i;
@@ -176,14 +176,6 @@ int fs_read(int ino, int offset, int len, char *buf) {
 
     }
   
-
-
-
-    //block_read(inode->ptrs[0],buf);
-    //printf("data is %s\n",buf);
-    
-    //FATAL("fs_read is not implemented");
-
 
     return 0;
 }
