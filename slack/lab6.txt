@@ -1,11 +1,18 @@
-Name:
-NUID:
-GitHub id:
+Name: Jayaraman Venkatesan
+NUID: 002783658
+GitHub id: jayaraman1998
 slack hours used: 0
 remaining slack hours: 120
 
 ---
 Collaborators (who you talked to about the lab, what you talked about):
+
+Student Name : Jingyi Mao
+Reason : 
+"He was struck on interpreting the following line in lab"
+"inode numbers and index in inode array (block 2–11). Given an inode number X (for example, 101), the inode can be located by X-100 (1) in the inode array."
+
+Just told him block_size = 512 and inode_size = 64 so there is no 1-1 mapping of blocks and inode but one block has lot of inodes
 
 
 Source material that you consulted:
