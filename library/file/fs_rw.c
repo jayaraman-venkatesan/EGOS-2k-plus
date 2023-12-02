@@ -48,10 +48,7 @@ void fs_init(m_uint32 super_blk_id) {
        //fs.total_blks = superblock.disk_size;
        fs.total_blks = superblock.disk_size;
 
-       printf("SETTING AVAIL BLOCKS -- \n");
-
         fs.avail_blks = 0;
-        printf("INITIAL AVAIL BLOCKS -- %d\n",fs.avail_blks);
         int i;
         for (i = 0; i < fs.total_blks; ++i) {
             if (!bit_test(fs.bitmap, i)) {
@@ -59,7 +56,7 @@ void fs_init(m_uint32 super_blk_id) {
             }
        
         }
-        printf("FINAL AVAIL BLOCKS -- %d\n",fs.avail_blks);
+        
     }
 
    // FATAL("fs_init is not implemented");
