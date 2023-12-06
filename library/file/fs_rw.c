@@ -59,11 +59,6 @@ void fs_init(m_uint32 super_blk_id) {
         
     }
 
-   // FATAL("fs_init is not implemented");
-
-
-
-
 }
 
 // [lab6-ex2]
@@ -115,6 +110,19 @@ void flush_inode() {
 
 }
 
+void read_block(inode_t *inode, int block_no, unsigned char *block) {
+    if (block_no > 9) {
+        // Read from indirect block
+        unsigned char indirect_block[BLOCK_SIZE];
+        block_read(inode->indirect_ptr, &indirect_block);
+        m_uint32 *indirect_ptrs = (m_uint32 *)indirect_block;
+        block_read(indirect_ptrs[block_no - 10], block);
+    } else {
+        // Read from direct block
+        block_read(inode->ptrs[block_no], block);
+    }
+}
+
 
 // [lab6-ex2]
 // read "len" bytes of contents starting from "offset"
@@ -131,14 +139,8 @@ int fs_read(int ino, int offset, int len, char *buf) {
     ASSERTX(len <= BLOCK_SIZE);
 
     // TODO: your code here
-    // printf("inode is %d\n",ino);
-    // printf("OFFSET %d\n",offset);
-    // printf("LEN %d\n",len);
     inode_t *inode = load_inode(ino);
   
-    // printf("INODE MODE %d\n",inode->mode);
-
-    //printf("block reading %d\n",inode->ptrs[0]);
 
     int start_block_no = offset / BLOCK_SIZE;
 
@@ -147,14 +149,9 @@ int fs_read(int ino, int offset, int len, char *buf) {
 
     unsigned char start_block[BLOCK_SIZE]; 
     unsigned char end_block[BLOCK_SIZE]; 
-    if(start_block_no > 9){
-        unsigned char indirect_block[BLOCK_SIZE];
-        block_read(inode->indirect_ptr,&indirect_block);
-        m_uint32 *indirect_ptrs = indirect_block;
-        block_read(indirect_ptrs[start_block_no-10],&start_block );
-    } else {
-        block_read(inode->ptrs[start_block_no],&start_block );
-    }
+    
+
+    read_block(inode, start_block_no, start_block);
 
     int start_offset_in_block = offset % BLOCK_SIZE;
 
@@ -162,14 +159,8 @@ int fs_read(int ino, int offset, int len, char *buf) {
     memcpy(buf, start_block + start_offset_in_block, bytes_to_copy_from_start_block);
 
     if(start_block_no < end_block_no){
-        if(end_block_no > 9){
-            unsigned char indirect_block[BLOCK_SIZE];
-            block_read(inode->indirect_ptr,&indirect_block);
-            m_uint32 *indirect_ptrs = indirect_block;
-            block_read(indirect_ptrs[end_block_no-10],&end_block );
-        } else {
-            block_read(inode->ptrs[end_block_no],&end_block );
-        }
+       
+        read_block(inode, end_block_no, end_block);
 
         int end_offset_in_block = len-bytes_to_copy_from_start_block;
         memcpy(buf + bytes_to_copy_from_start_block, end_block, end_offset_in_block);
@@ -191,6 +182,85 @@ int fs_fsize(int ino) {
 
     return inode->size;
     
+}
+
+int check_and_allocate_indirect_blk(inode_t *inode){
+
+    if(inode->indirect_ptr <= 0){
+            //alloc indirect bloc
+            inode->indirect_ptr = alloc_block();
+            if( inode->indirect_ptr == -1 ){
+                return -1;
+            }
+            flush_inode();
+
+            unsigned char indirect_block[BLOCK_SIZE] = {0};
+            block_write(inode->indirect_ptr, &indirect_block);
+    }
+
+    return 0;
+
+}
+
+int read_into_block(inode_t *inode ,  unsigned char *block , int blk_no){
+
+    
+    if(blk_no > 9){
+
+        int res = check_and_allocate_indirect_blk(inode);
+
+        if(res == -1){
+            return -1;
+        }
+
+        unsigned char indirect_block[BLOCK_SIZE];
+    
+        block_read(inode->indirect_ptr,&indirect_block);
+    
+        m_uint32 *indirect_ptrs = indirect_block;
+
+        //find ptr in indirect block
+        int block_ptr = indirect_ptrs[blk_no-10];
+    
+        if(block_ptr <= 0){
+            indirect_ptrs[blk_no-10] = alloc_block();
+            if(indirect_ptrs[blk_no-10] == -1 ){
+                return -1;
+            }
+            block_write(inode->indirect_ptr,indirect_ptrs);
+        }
+
+        block_read(indirect_ptrs[blk_no-10],block);
+
+    } else {
+
+        if(inode->ptrs[blk_no] <= 0){
+            inode->ptrs[blk_no] = alloc_block();
+            if(inode->ptrs[blk_no] == -1){
+                return -1;
+            }
+            flush_inode();
+        }
+     
+        block_read(inode->ptrs[blk_no],block );
+
+    }
+
+    return 0;
+}
+
+void write_from_block(inode_t *inode , int block_no , unsigned char *block){
+
+    if (block_no > 9) {
+        unsigned char indirect_block[BLOCK_SIZE];
+        block_read(inode->indirect_ptr, &indirect_block);
+        m_uint32 *indirect_ptrs = (m_uint32 *)indirect_block;
+        block_write(indirect_ptrs[block_no - 10], block);
+        block_write(inode->indirect_ptr, &indirect_block);  // Ensure the indirect block is written back
+    } else {
+        block_write(inode->ptrs[block_no], block);
+    }
+
 }
 
 
@@ -217,38 +287,12 @@ int fs_write(int ino, int offset, int len, const char *buf) {
     unsigned char start_block[BLOCK_SIZE]; 
     unsigned char end_block[BLOCK_SIZE]; 
 
-    if(start_block_no > 9){
-        if(inode->indirect_ptr <= 0){
-            //alloc indirect bloc
-            inode->indirect_ptr = alloc_block();
-            flush_inode();
+    int res = read_into_block(inode,start_block,start_block_no);
 
-            unsigned char indirect_block[BLOCK_SIZE] = {0};
-            block_write(inode->indirect_ptr, &indirect_block);
-        }
-        //read indirect block
-        unsigned char indirect_block[BLOCK_SIZE];
-        block_read(inode->indirect_ptr,&indirect_block);
-        m_uint32 *indirect_ptrs = indirect_block;
-
-        //find ptr in indirect block
-        int block_ptr = indirect_ptrs[start_block_no-10];
-        if(block_ptr <= 0){
-            indirect_ptrs[start_block_no-10] = alloc_block();
-            block_write(inode->indirect_ptr,indirect_ptrs);
-        }
-
-        block_read(indirect_ptrs[start_block_no-10],&start_block);
-    } else {
-       // printf("here\n");
-        if(inode->ptrs[start_block_no] <= 0){
-            inode->ptrs[start_block_no] = alloc_block();
-            flush_inode();
-      
-        }
-     
-        block_read(inode->ptrs[start_block_no],&start_block );
+    if(res == -1){
+        return -1;
     }
+
 
     int start_offset_in_block = offset % BLOCK_SIZE;
 
@@ -256,70 +300,20 @@ int fs_write(int ino, int offset, int len, const char *buf) {
 
     memcpy(start_block + start_offset_in_block, buf, bytes_to_copy_from_start_block);
 
-    if (start_block_no > 9) {
-        unsigned char indirect_block[BLOCK_SIZE];
-        block_read(inode->indirect_ptr, &indirect_block);
-        m_uint32 *indirect_ptrs = (m_uint32 *)indirect_block;
-        block_write(indirect_ptrs[start_block_no - 10], &start_block);
-        block_write(inode->indirect_ptr, &indirect_block);  // Ensure the indirect block is written back
-    } else {
-        block_write(inode->ptrs[start_block_no], &start_block);
-    }
-
-   
+    write_from_block(inode , start_block_no, start_block);
 
     if(start_block_no < end_block_no){
-        if(end_block_no > 9){
-            if(inode->indirect_ptr <= 0){
-               
-               
-                inode->indirect_ptr = alloc_block();
-                flush_inode();
 
-                unsigned char indirect_block[BLOCK_SIZE] = {0};
-                block_write(inode->indirect_ptr, &indirect_block);
-              
-            }
-            //read indirect block
-            unsigned char indirect_block[BLOCK_SIZE];
-            block_read(inode->indirect_ptr,&indirect_block);
-            m_uint32 *indirect_ptrs = indirect_block;
-
-            //find ptr in indirect block
-            m_uint32 block_ptr = indirect_ptrs[end_block_no-10];
-
-         
-            
-            if(block_ptr <= 0){
-               
-                indirect_ptrs[end_block_no-10] = alloc_block();
-                block_write(inode->indirect_ptr,indirect_block);
-                
-            }
-
-            block_read(indirect_ptrs[end_block_no-10],&end_block);
-           
-        } else {
-            if(inode->ptrs[end_block_no] <= 0){
-                inode->ptrs[end_block_no] = alloc_block();
-                flush_inode();
-            }
-            block_read(inode->ptrs[end_block_no],&end_block );
+        int res2 = read_into_block(inode,end_block,end_block_no);
+        if(res2 == -1){
+            return -1;
         }
 
         int end_offset_in_block = len-bytes_to_copy_from_start_block;
         memcpy(end_block,buf + bytes_to_copy_from_start_block,  end_offset_in_block);
 
         // Write the modified start block back to disk
-        if (end_block_no > 9) {
-            unsigned char indirect_block[BLOCK_SIZE];
-            block_read(inode->indirect_ptr, &indirect_block);
-            m_uint32 *indirect_ptrs = (m_uint32 *)indirect_block;
-            block_write(indirect_ptrs[end_block_no - 10], &end_block);
-            block_write(inode->indirect_ptr, &indirect_block);  // Ensure the indirect block is written back
-        } else {
-         block_write(inode->ptrs[end_block_no], &end_block);
-        }
+        write_from_block(inode , end_block_no, end_block);
 
     }
 
